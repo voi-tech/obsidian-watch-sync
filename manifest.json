@@ -1,0 +1,10 @@
+{
+	"id": "stremio-sync",
+	"name": "Stremio Sync",
+	"version": "26.8.3",
+	"minAppVersion": "1.13.0",
+	"description": "Safely sync a Stremio library and watch progress into customizable movie and series notes.",
+	"author": "voitech",
+	"authorUrl": "https://voitech.lol",
+	"isDesktopOnly": true
+}

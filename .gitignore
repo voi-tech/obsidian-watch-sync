@@ -1,0 +1,9 @@
+node_modules/
+main.js
+main.js.map
+# Plugin runtime state — holds the user's library data. Never commit.
+data.json
+cache.json
+coverage/
+.worktrees/
+.DS_Store

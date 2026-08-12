@@ -1,0 +1,161 @@
+{
+	"id": "tt19854762",
+	"imdb_id": "tt19854762",
+	"type": "series",
+	"name": "Hijack",
+	"description": "Sam Nelson, a master negotiator, faces a series of life-or-death situations where his skills of persuasion are his only means of survival.",
+	"poster": "https://images.metahub.space/poster/small/tt19854762/img",
+	"background": "https://images.metahub.space/background/medium/tt19854762/img",
+	"genre": [
+		"Drama",
+		"Thriller"
+	],
+	"cast": [
+		"Idris Elba",
+		"Max Beesley",
+		"Christine Adams"
+	],
+	"director": [],
+	"runtime": "47 min",
+	"year": "2023–",
+	"releaseInfo": "2023–",
+	"released": "2023-06-28T00:00:00.000Z",
+	"imdbRating": "7.3",
+	"videos": [
+		{
+			"id": "tt19854762:1:1",
+			"season": 1,
+			"number": 1,
+			"name": "Final Call",
+			"released": "2023-06-28T00:00:00.000Z",
+			"firstAired": "2023-06-28T00:00:00.000Z",
+			"overview": "Sam Nelson gets on a flight to London hoping to win back his ex-wife, but something on board feels wrong—and his suspicions are confirmed."
+		},
+		{
+			"id": "tt19854762:1:2",
+			"season": 1,
+			"number": 2,
+			"name": "3 Degrees",
+			"released": "2023-06-28T00:00:00.000Z",
+			"firstAired": "2023-06-28T00:00:00.000Z",
+			"overview": "Spotting an opportunity, Sam executes a plan to get a covert message to authorities on the ground."
+		},
+		{
+			"id": "tt19854762:1:3",
+			"season": 1,
+			"number": 3,
+			"name": "Draw a Blank",
+			"released": "2023-07-04T00:00:00.000Z",
+			"firstAired": "2023-07-04T00:00:00.000Z",
+			"overview": "As the UK’s counterterrorism unit learns of Flight KA29, Sam gets involved in a risky plan to take on the hijackers."
+		},
+		{
+			"id": "tt19854762:1:4",
+			"season": 1,
+			"number": 4,
+			"name": "Not Responding",
+			"released": "2023-07-12T00:00:00.000Z",
+			"firstAired": "2023-07-12T00:00:00.000Z",
+			"overview": "An incident team in Westminster scrambles to intercept fighter jets. Sam tries contacting the ground once more when a hijacker is injured."
+		},
+		{
+			"id": "tt19854762:1:5",
+			"season": 1,
+			"number": 5,
+			"name": "Less Than an Hour",
+			"released": "2023-07-19T00:00:00.000Z",
+			"firstAired": "2023-07-19T00:00:00.000Z",
+			"overview": "Sam attempts to convince the hijackers to land the plane. A list of demands reveals who’s behind the hijacking."
+		},
+		{
+			"id": "tt19854762:1:6",
+			"season": 1,
+			"number": 6,
+			"name": "Comply Slowly",
+			"released": "2023-07-26T00:00:00.000Z",
+			"firstAired": "2023-07-26T00:00:00.000Z",
+			"overview": "Faced with an impossible decision, the passengers ready themselves for a fight."
+		},
+		{
+			"id": "tt19854762:1:7",
+			"season": 1,
+			"number": 7,
+			"name": "Brace Brace Brace",
+			"released": "2023-08-02T00:00:00.000Z",
+			"firstAired": "2023-08-02T00:00:00.000Z",
+			"overview": "A new threat emerges on board as Sam struggles to control the chaos unfolding around him."
+		},
+		{
+			"id": "tt19854762:2:1",
+			"season": 2,
+			"number": 1,
+			"name": "Signal",
+			"released": "2026-01-14T00:00:00.000Z",
+			"firstAired": "2026-01-14T00:00:00.000Z",
+			"overview": "Two years after Flight KA29’s hijacking, Sam Nelson is thrust into another life-threatening ordeal — but this time it’s personal."
+		},
+		{
+			"id": "tt19854762:2:2",
+			"season": 2,
+			"number": 2,
+			"name": "Control",
+			"released": "2026-01-21T00:00:00.000Z",
+			"firstAired": "2026-01-21T00:00:00.000Z",
+			"overview": "Sam urges Otto to keep his cool as passengers begin to suspect something is wrong. Police Chief Winter races to mount a response."
+		},
+		{
+			"id": "tt19854762:2:3",
+			"season": 2,
+			"number": 3,
+			"name": "Baggage",
+			"released": "2026-01-28T00:00:00.000Z",
+			"firstAired": "2026-01-28T00:00:00.000Z",
+			"overview": "Berlin police scramble to contain the situation. Sam pressures Winter to meet his demands. Marsha discovers she’s being watched."
+		},
+		{
+			"id": "tt19854762:2:4",
+			"season": 2,
+			"number": 4,
+			"name": "Switch",
+			"released": "2026-02-04T00:00:00.000Z",
+			"firstAired": "2026-02-04T00:00:00.000Z",
+			"overview": "A shocking turn of events forces Sam to make a gesture of good faith. In London, Daniel calls on a friend to help look into what’s happening in Berlin."
+		},
+		{
+			"id": "tt19854762:2:5",
+			"season": 2,
+			"number": 5,
+			"name": "Outage",
+			"released": "2026-02-11T00:00:00.000Z",
+			"firstAired": "2026-02-11T00:00:00.000Z",
+			"overview": "Anger and frustration among the passengers begin to boil over—just as Sam comes to a frightening realization."
+		},
+		{
+			"id": "tt19854762:2:6",
+			"season": 2,
+			"number": 6,
+			"name": "Junction",
+			"released": "2026-02-18T00:00:00.000Z",
+			"firstAired": "2026-02-18T00:00:00.000Z",
+			"overview": "To avoid further disaster, Sam must work with an unlikely ally. The enemy closes in on Marsha as Zahra and Daniel fear they’ve reached a dead end."
+		},
+		{
+			"id": "tt19854762:2:7",
+			"season": 2,
+			"number": 7,
+			"name": "Contact",
+			"released": "2026-02-25T00:00:00.000Z",
+			"firstAired": "2026-02-25T00:00:00.000Z",
+			"overview": "Sam gambles on a dangerous tactic in hopes of outsmarting the police. Armed with new intel, Olivia tries to influence Winter’s next move."
+		},
+		{
+			"id": "tt19854762:2:8",
+			"season": 2,
+			"number": 8,
+			"name": "Terminal",
+			"released": "2026-03-04T00:00:00.000Z",
+			"firstAired": "2026-03-04T00:00:00.000Z",
+			"overview": "With the handover imminent, Sam is prepared to put his life on the line to save Marsha—and expose the truth."
+		}
+	]
+}
