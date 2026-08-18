@@ -4,6 +4,19 @@ All notable changes to Stremio Sync are documented here. Releases use the `YY.M.
 
 ## [Unreleased]
 
+## [26.8.4] — 2026-08-18
+
+### Added
+
+- Experimental mobile beta for iOS and Android, installable through BRAT; use a test vault or current backup.
+- Mobile bundle guard that rejects Node, Electron, Buffer, and the previous desktop-oriented bitfield dependency.
+
+### Changed
+
+- Replace the watched-bitfield dependency with a browser-safe decoder.
+- Disable automatic synchronization on mobile; manual synchronization remains available.
+- Make pairing resume after returning from the browser and make preview controls touch-friendly.
+
 ## [26.8.3] — 2026-08-07
 
 ### Fixed
@@ -44,7 +57,8 @@ All notable changes to Stremio Sync are documented here. Releases use the `YY.M.
 - Secure Stremio pairing with retry and approved-link validation.
 - Automated lint, typecheck, tests, production build, release-asset checks, and draft-release workflow.
 
-[Unreleased]: https://github.com/voi-tech/obsidian-stremio-sync/compare/26.8.3...HEAD
+[Unreleased]: https://github.com/voi-tech/obsidian-stremio-sync/compare/26.8.4...HEAD
+[26.8.4]: https://github.com/voi-tech/obsidian-stremio-sync/releases/tag/26.8.4
 [26.8.3]: https://github.com/voi-tech/obsidian-stremio-sync/releases/tag/26.8.3
 [26.8.2]: https://github.com/voi-tech/obsidian-stremio-sync/releases/tag/26.8.2
 [26.8.1]: https://github.com/voi-tech/obsidian-stremio-sync/releases/tag/26.8.1

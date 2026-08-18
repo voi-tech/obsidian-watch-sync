@@ -41,8 +41,12 @@ export default defineConfig(
 		},
 	},
 	{
-		files: ["tests/**/*.ts"],
+		files: ["tests/**/*.ts", "vitest.config.ts"],
+		languageOptions: {
+			globals: { ...globals.node },
+		},
 		rules: {
+			"obsidianmd/no-nodejs-modules": "off",
 			"obsidianmd/no-global-this": "off",
 			"obsidianmd/no-tfile-tfolder-cast": "off",
 			"obsidianmd/prefer-create-el": "off",

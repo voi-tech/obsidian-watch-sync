@@ -17,8 +17,8 @@ if (versions[manifest.version] !== manifest.minAppVersion) {
 	errors.push("versions.json does not map the current version to minAppVersion.");
 }
 
-if (manifest.isDesktopOnly !== true) {
-	errors.push("manifest.json must declare isDesktopOnly as true.");
+if (manifest.isDesktopOnly !== false) {
+	errors.push("manifest.json must declare isDesktopOnly as false for the mobile beta.");
 }
 
 for (const file of ["main.js", "manifest.json", "styles.css"]) {
