@@ -31,13 +31,14 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint . --max-warnings=0",
-    "check": "npm run lint && npm run typecheck && npm test && npm run build && npm run release:check",
+    "check": "npm run lint && npm run typecheck && npm test && npm run build && npm run check:mobile-bundle && npm run release:check",
+    "check:mobile-bundle": "node scripts/check-mobile-bundle.mjs",
     "release:check": "node scripts/check-release.mjs",
     "version": "node scripts/version-bump.mjs"
   },
   "dependencies": {
     "handlebars": "^4.7.9",
-    "stremio-watched-bitfield": "^1.1.0",
+    "pako": "^1.0.11",
     "zod": "^3.25.76"
   },
   "devDependencies": {

@@ -1,26 +1,32 @@
 import { Modal, Setting, type App, type ButtonComponent } from 'obsidian';
 import type { Operation, SyncPlan } from '../model/types';
 import { allOperations, planSize, selectOperations } from '../model/types';
-
-const KIND_LABELS: Record<Operation['kind'], string> = {
-	'create-file': 'new note',
-	'adopt-note': 'adopt',
-	'update-frontmatter': 'properties',
-	'update-episodes': 'episodes',
-	'append-season': 'new season',
-	'update-managed-block': 'block',
-	'add-managed-block': 'block',
-	'rewrite-body': 'rewrite',
-};
+import { t } from '../i18n';
 
 /** Which bucket a title falls into, for the counts row and the filter. */
 type Category = 'create' | 'adopt' | 'update';
 
-const CATEGORY_LABELS: Record<Category, string> = {
-	create: 'New notes',
-	adopt: 'Adopted',
-	update: 'Updated',
-};
+function categoryLabel(category: Category): string {
+	return t(`preview.${category === 'create' ? 'new' : category === 'adopt' ? 'adopted' : 'updated'}`);
+}
+
+function kindLabel(kind: Operation['kind']): string {
+	const key =
+		kind === 'create-file'
+			? 'create'
+			: kind === 'adopt-note'
+				? 'adopt'
+				: kind === 'update-frontmatter'
+					? 'properties'
+					: kind === 'update-episodes'
+						? 'episodes'
+						: kind === 'append-season'
+							? 'season'
+							: kind === 'rewrite-body'
+								? 'rewrite'
+								: 'block';
+	return t(`preview.kind.${key}`);
+}
 
 export interface TitleGroup {
 	mediaId: string;
@@ -70,7 +76,7 @@ export class PreviewModal extends Modal {
 
 	override onOpen(): void {
 		const { contentEl } = this;
-		this.setTitle('Stremio Sync — preview');
+		this.setTitle(t('preview.title'));
 		this.modalEl.addClass('stremio-sync-preview');
 
 		this.groups = groupByTitle(this.plan);
@@ -81,7 +87,7 @@ export class PreviewModal extends Modal {
 			const list = contentEl.createDiv({ cls: 'stremio-sync-groups' });
 			for (const group of this.groups) this.renderGroup(list, group);
 			this.emptyEl = contentEl.createEl('p', {
-				text: 'No title matches the filter.',
+				text: t('preview.empty'),
 				cls: 'stremio-sync-note stremio-sync-empty',
 			});
 		}
@@ -128,15 +134,15 @@ export class PreviewModal extends Modal {
 			});
 		};
 
-		addChip('all', 'All', this.groups.length);
-		for (const category of ['create', 'adopt', 'update'] as const) {
-			const count = this.groups.filter((group) => group.category === category).length;
-			if (count > 0) addChip(category, CATEGORY_LABELS[category], count);
+			addChip('all', t('preview.all'), this.groups.length);
+			for (const category of ['create', 'adopt', 'update'] as const) {
+				const count = this.groups.filter((group) => group.category === category).length;
+				if (count > 0) addChip(category, categoryLabel(category), count);
 		}
 
 		const input = containerEl
 			.createDiv({ cls: 'stremio-sync-search' })
-			.createEl('input', { type: 'search', placeholder: 'Filter by title or path…' });
+				.createEl('input', { type: 'search', placeholder: t('preview.filter') });
 		input.addEventListener('input', () => {
 			this.filterText = input.value.trim().toLowerCase();
 			this.applyFilter();
@@ -144,9 +150,9 @@ export class PreviewModal extends Modal {
 
 		new Setting(containerEl)
 			.setClass('stremio-sync-bulk')
-			.setDesc('Unchecked entries are skipped in this run.')
-			.addButton((button) => button.setButtonText('Select all').onClick(() => this.setAll(true)))
-			.addButton((button) => button.setButtonText('Select none').onClick(() => this.setAll(false)));
+				.setDesc(t('preview.unchecked'))
+				.addButton((button) => button.setButtonText(t('preview.selectAll')).onClick(() => this.setAll(true)))
+				.addButton((button) => button.setButtonText(t('preview.selectNone')).onClick(() => this.setAll(false)));
 	}
 
 	private renderGroup(container: HTMLElement, group: TitleGroup): void {
@@ -159,7 +165,7 @@ export class PreviewModal extends Modal {
 		const text = header.createDiv({ cls: 'stremio-sync-group-text' });
 		text.createDiv({ text: group.title, cls: 'stremio-sync-group-title' });
 		text.createDiv({ text: group.path, cls: 'stremio-sync-group-path' });
-		header.createSpan({ text: CATEGORY_LABELS[group.category], cls: 'stremio-sync-group-badge' });
+		header.createSpan({ text: categoryLabel(group.category), cls: 'stremio-sync-group-badge' });
 
 		this.groupCheckboxes.set(group.mediaId, groupBox);
 		this.rows.set(group.mediaId, { el: groupEl, group });
@@ -179,7 +185,7 @@ export class PreviewModal extends Modal {
 			const label = rows.createEl('li').createEl('label');
 			const box = label.createEl('input', { type: 'checkbox' });
 			box.checked = true;
-			label.createSpan({ text: KIND_LABELS[operation.kind], cls: 'stremio-sync-kind' });
+			label.createSpan({ text: kindLabel(operation.kind), cls: 'stremio-sync-kind' });
 			label.createSpan({ text: operation.summary(), cls: 'stremio-sync-op-text' });
 			this.operationCheckboxes.set(operation, box);
 
@@ -245,7 +251,7 @@ export class PreviewModal extends Modal {
 		if (!this.summaryEl) return;
 		const total = planSize(this.plan);
 		if (total === 0) {
-			this.summaryEl.setText('Nothing to do — your notes already match Stremio.');
+			this.summaryEl.setText(t('preview.nothing'));
 			return;
 		}
 
@@ -256,25 +262,27 @@ export class PreviewModal extends Modal {
 
 		this.summaryEl.setText(
 			chosen === 0
-				? 'Nothing is selected — no changes will be made.'
-				: `${chosen} of ${total} ${plural(total, 'operation')} selected across ${titles} ${plural(titles, 'title')}. Nothing has been written yet.`,
+				? t('preview.noneSelected')
+				: t('preview.selected', { chosen, total, titles }),
 		);
 		this.applyButton?.setDisabled(chosen === 0);
-		this.applyButton?.setButtonText(chosen === total ? 'Apply' : `Apply selected (${chosen})`);
+		this.applyButton?.setButtonText(
+			chosen === total ? t('preview.apply') : t('preview.applySelected', { chosen }),
+		);
 	}
 
 	/** Anything the user cannot act on, folded away so it never buries the list. */
 	private renderProblems(containerEl: HTMLElement): void {
 		const sections: { title: string; items: string[]; warning?: boolean }[] = [
 			{
-				title: 'Conflicts — skipped',
+				title: t('preview.conflicts'),
 				items: this.plan.conflicts.map(
 					(conflict) => `${conflict.title}: ${conflict.reason} → ${conflict.candidates.join(', ')}`,
 				),
 				warning: true,
 			},
-			{ title: 'Skipped', items: this.plan.skipped.map((s) => `${s.title}: ${s.reason}`) },
-			{ title: 'Metadata warnings', items: this.warnings },
+			{ title: t('preview.skipped'), items: this.plan.skipped.map((s) => `${s.title}: ${s.reason}`) },
+			{ title: t('preview.warnings'), items: this.warnings },
 		];
 
 		for (const section of sections) {
@@ -287,7 +295,7 @@ export class PreviewModal extends Modal {
 			for (const item of section.items.slice(0, 100)) list.createEl('li', { text: item });
 			if (section.items.length > 100) {
 				details.createEl('p', {
-					text: `…and ${section.items.length - 100} more.`,
+					text: t('preview.more', { count: section.items.length - 100 }),
 					cls: 'stremio-sync-note',
 				});
 			}
@@ -300,19 +308,15 @@ export class PreviewModal extends Modal {
 			.addButton((button) => {
 				this.applyButton = button;
 				button
-					.setButtonText('Apply')
+					.setButtonText(t('preview.apply'))
 					.setCta()
 					.onClick(() => {
 						this.confirmed = this.selected.size > 0;
 						this.close();
 					});
 			})
-			.addButton((button) => button.setButtonText('Cancel').onClick(() => this.close()));
+			.addButton((button) => button.setButtonText(t('preview.cancel')).onClick(() => this.close()));
 	}
-}
-
-function plural(count: number, word: string): string {
-	return count === 1 ? word : `${word}s`;
 }
 
 /**

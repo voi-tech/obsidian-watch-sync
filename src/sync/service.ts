@@ -14,6 +14,7 @@ import { buildPlan } from './engine';
 import type { ApplicableOperation } from './operations';
 import { executePlan } from '../vault/writer';
 import { readTemplateSource } from '../vault/template-source';
+import { t } from '../i18n';
 
 /** Titles normalized at once. Each one is several HTTP round trips. */
 const NORMALIZE_CONCURRENCY = 5;
@@ -92,7 +93,7 @@ export class SyncService {
 		if (sources.tmdb?.keyRejected) {
 			warnings.push({
 				mediaId: 'TMDB',
-				message: 'TMDB rejected the API key — every title fell back to Cinemeta. Check the key in settings.',
+				message: t('warning.tmdbKey'),
 			});
 		}
 

@@ -6,6 +6,7 @@ import {
 	type LibraryItem,
 } from '../model/schema';
 import { shouldSync, titleWatchStatus, type WatchThresholds } from './watch-status';
+import { t } from '../i18n';
 
 const API_BASE = 'https://api.strem.io/api';
 
@@ -30,14 +31,12 @@ async function post(path: string, body: Record<string, unknown>): Promise<unknow
 			throw: false,
 		});
 		if (response.status >= 400) {
-			throw new StremioApiError(`The Stremio API returned HTTP ${response.status}.`);
+			throw new StremioApiError(t('api.http', { status: response.status }));
 		}
 		json = response.json;
 	} catch (error) {
 		if (error instanceof StremioApiError) throw error;
-		throw new StremioApiError(
-			`Could not reach Stremio: ${error instanceof Error ? error.message : String(error)}`,
-		);
+		throw new StremioApiError(t('api.reach', { error: error instanceof Error ? error.message : String(error) }));
 	}
 
 	// Stremio answers 200 with an `error` envelope for expired or invalid keys.
@@ -47,8 +46,8 @@ async function post(path: string, body: Record<string, unknown>): Promise<unknow
 		const isAuth = /session|auth|user not found|login/i.test(message);
 		throw new StremioApiError(
 			isAuth
-				? `Stremio rejected the authKey (${message}). Generate a new key and save it in the settings.`
-				: `Stremio returned an error: ${message}`,
+				? t('api.auth', { message })
+				: t('api.error', { message }),
 			isAuth ? 'auth' : 'network',
 		);
 	}
@@ -60,10 +59,10 @@ export async function fetchLibrary(authKey: string): Promise<LibraryItem[]> {
 	const json = await post('datastoreGet', { authKey, collection: 'libraryItem', all: true });
 	const parsed = datastoreGetSchema.safeParse(json);
 	if (!parsed.success) {
-		throw new StremioApiError(
-			`The datastoreGet response has an unexpected shape: ${parsed.error.issues[0]?.message ?? 'unknown validation error'}`,
-			'shape',
-		);
+			throw new StremioApiError(
+				t('api.shape', { message: parsed.error.issues[0]?.message ?? 'unknown validation error' }),
+				'shape',
+			);
 	}
 	return parsed.data.result ?? [];
 }
@@ -73,10 +72,10 @@ export async function fetchLibraryMeta(authKey: string): Promise<{ id: string; m
 	const json = await post('datastoreMeta', { authKey, collection: 'libraryItem' });
 	const parsed = datastoreMetaSchema.safeParse(json);
 	if (!parsed.success) {
-		throw new StremioApiError(
-			`The datastoreMeta response has an unexpected shape: ${parsed.error.issues[0]?.message ?? 'unknown validation error'}`,
-			'shape',
-		);
+			throw new StremioApiError(
+				t('api.shape', { message: parsed.error.issues[0]?.message ?? 'unknown validation error' }),
+				'shape',
+			);
 	}
 	return (parsed.data.result ?? []).map(([id, mtime]) => ({ id, mtime }));
 }

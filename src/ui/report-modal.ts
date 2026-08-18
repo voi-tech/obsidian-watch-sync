@@ -1,5 +1,6 @@
 import { Modal, type App } from 'obsidian';
 import type { SyncResult } from '../model/types';
+import { t } from '../i18n';
 
 export class ReportModal extends Modal {
 	constructor(
@@ -11,16 +12,16 @@ export class ReportModal extends Modal {
 
 	override onOpen(): void {
 		const { contentEl } = this;
-		this.setTitle('Stremio Sync — report');
+		this.setTitle(t('report.title'));
 
 		const rows: [string, string][] = [
-			['Created', String(this.result.created)],
-			['Adopted', String(this.result.adopted)],
-			['Updated', String(this.result.updated)],
-			['Skipped', String(this.result.skipped)],
-			['Deselected', String(this.result.deselected)],
-			['Errors', String(this.result.errors.length)],
-			['Duration', `${(this.result.durationMs / 1000).toFixed(1)} s`],
+			[t('report.created'), String(this.result.created)],
+			[t('report.adopted'), String(this.result.adopted)],
+			[t('report.updated'), String(this.result.updated)],
+			[t('report.skipped'), String(this.result.skipped)],
+			[t('report.deselected'), String(this.result.deselected)],
+			[t('report.errors'), String(this.result.errors.length)],
+			[t('report.duration'), `${(this.result.durationMs / 1000).toFixed(1)} s`],
 		];
 
 		const table = contentEl.createEl('table', { cls: 'stremio-sync-summary' });
@@ -31,7 +32,7 @@ export class ReportModal extends Modal {
 		}
 
 		if (this.result.errors.length > 0) {
-			contentEl.createEl('h4', { text: 'Errors' });
+			contentEl.createEl('h4', { text: t('report.errors') });
 			const list = contentEl.createEl('ul', { cls: 'stremio-sync-list mod-warning' });
 			for (const error of this.result.errors) {
 				list.createEl('li', { text: error.message });

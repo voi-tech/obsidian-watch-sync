@@ -21,6 +21,20 @@ export interface RequestUrlResponse {
 
 export const requestUrl = vi.fn<(param: RequestUrlParam) => Promise<RequestUrlResponse>>();
 
+let currentLanguage = 'en';
+
+export function getLanguage(): string {
+	return currentLanguage;
+}
+
+export function __setLanguage(language: string): void {
+	currentLanguage = language;
+}
+
+export const Platform = {
+	isMobileApp: false,
+};
+
 export function normalizePath(path: string): string {
 	return path.replace(/\\/g, '/').replace(/\/{2,}/g, '/').replace(/(^\/|\/$)/g, '');
 }

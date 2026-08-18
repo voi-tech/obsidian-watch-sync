@@ -66,6 +66,7 @@ describe('ConnectModal polling', () => {
 		expect(modal.contentEl.textContent).toContain('network unavailable');
 		expect(modal.contentEl.textContent).toContain('Try again');
 		expect(vi.getTimerCount()).toBe(0);
+		modal.close();
 	});
 
 	it('stores an approved key exactly once', async () => {
@@ -86,6 +87,28 @@ describe('ConnectModal polling', () => {
 		expect(vi.getTimerCount()).toBe(1);
 		modal.close();
 		expect(vi.getTimerCount()).toBe(0);
+	});
+
+	it('polls immediately when the app becomes visible again', async () => {
+		const { modal } = await opened();
+		read.mockClear();
+
+		document.dispatchEvent(new Event('visibilitychange'));
+		await settle();
+
+		expect(read).toHaveBeenCalledTimes(1);
+		modal.close();
+	});
+
+	it('does not poll after it is closed when visibility changes', async () => {
+		const { modal } = await opened();
+		modal.close();
+		read.mockClear();
+
+		document.dispatchEvent(new Event('visibilitychange'));
+		await settle();
+
+		expect(read).not.toHaveBeenCalled();
 	});
 
 	it('opens the validated approval page without an opener', async () => {

@@ -1,7 +1,8 @@
 /**
  * @vitest-environment jsdom
  */
-import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import * as obsidian from 'obsidian';
 import { PreviewModal, groupByTitle, type PreviewDecision } from '../src/ui/preview-modal';
 import { emptyPlan, planSize, type Operation, type SyncPlan } from '../src/model/types';
 import { installObsidianDom } from './stubs/dom';
@@ -9,6 +10,8 @@ import { installObsidianDom } from './stubs/dom';
 beforeAll(() => {
 	installObsidianDom();
 });
+
+afterEach(() => vi.restoreAllMocks());
 
 function op(
 	kind: Operation['kind'],
@@ -114,6 +117,19 @@ describe('preview layout', () => {
 			'New notes1',
 			'Adopted1',
 			'Updated1',
+		]);
+	});
+
+	it('uses Polish labels when Obsidian is set to Polish', () => {
+		vi.spyOn(obsidian, 'getLanguage').mockReturnValue('pl');
+		const ui = open(samplePlan());
+
+		expect(ui.modal.titleEl.textContent).toBe('Stremio Sync — podgląd');
+		expect(ui.chips().map((chip) => chip.textContent)).toEqual([
+			'Wszystkie3',
+			'Nowe notatki1',
+			'Przejęte1',
+			'Zaktualizowane1',
 		]);
 	});
 

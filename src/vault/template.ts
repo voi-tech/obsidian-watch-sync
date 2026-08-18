@@ -1,6 +1,7 @@
 import Handlebars from 'handlebars';
 import type { NormalizedMedia, Season } from '../model/types';
 import { renderSeasons } from './episodes';
+import { t } from '../i18n';
 
 /**
  * Templates are Handlebars so users can restructure the note freely. The context
@@ -104,7 +105,7 @@ export function render(template: string, context: TemplateContext): string {
 		return engine.compile(prepared, { noEscape: true })(context);
 	} catch (error) {
 		throw new TemplateError(
-			`Could not process the template: ${error instanceof Error ? error.message : String(error)}`,
+				t('template.process', { error: error instanceof Error ? error.message : String(error) }),
 		);
 	}
 }

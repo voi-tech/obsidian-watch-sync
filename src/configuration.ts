@@ -1,4 +1,5 @@
 import type { StremioSyncSettings } from './model/types';
+import { t } from './i18n';
 
 export interface ConfigurationEnvironment {
 	hasSecret(secretId: string): boolean;
@@ -10,10 +11,10 @@ export interface ConfigurationEnvironment {
 export function tagProblem(tag: string): string | null {
 	if (!tag) return null;
 	if (tag.startsWith('/') || tag.endsWith('/') || tag.includes('//')) {
-		return 'Use a valid Obsidian tag without empty path segments.';
+		return t('tag.path');
 	}
 	if (/^\p{N}+$/u.test(tag) || !/^[\p{L}\p{N}\p{M}\p{S}_/-]+$/u.test(tag)) {
-		return 'Use letters, numbers, underscores, hyphens, slashes, or Unicode symbols; a tag cannot be numeric-only.';
+		return t('tag.characters');
 	}
 	return null;
 }
@@ -35,30 +36,32 @@ export function configurationProblem(
 	environment: ConfigurationEnvironment,
 ): string | null {
 	if (!settings.authKeySecretId || !environment.hasSecret(settings.authKeySecretId)) {
-		return 'the Stremio secret is missing — connect the account again in settings.';
+		return t('config.secret');
 	}
 
-	for (const [label, folder] of [
+	for (const [key, folder] of [
 		['movie', settings.movieFolder],
 		['series', settings.seriesFolder],
 	] as const) {
-		if (!folder) return `no ${label} folder selected.`;
-		if (!environment.folderExists(folder)) return `the ${label} folder "${folder}" does not exist.`;
+		const label = t(`config.label.${key}`);
+		if (!folder) return t('config.folderRequired', { label });
+		if (!environment.folderExists(folder)) return t('config.folderMissing', { label, path: folder });
 	}
 
-	for (const [label, template] of [
+	for (const [key, template] of [
 		['movie', settings.movieTemplate],
 		['series', settings.seriesTemplate],
 	] as const) {
 		if (template && !environment.markdownFileExists(template)) {
-			return `the ${label} template "${template}" is not an existing Markdown note.`;
+			const label = t(`config.label.${key}`);
+			return t('config.templateMissing', { label, path: template });
 		}
 	}
 
 	const duplicate = duplicatePropertyName(settings);
-	if (duplicate) return `the property name "${duplicate}" is used more than once.`;
+	if (duplicate) return t('config.duplicateProperty', { value: duplicate });
 
 	const invalidTag = tagProblem(settings.doneTag);
-	if (invalidTag) return `the completion tag is invalid. ${invalidTag}`;
+	if (invalidTag) return t('config.invalidTag', { problem: invalidTag });
 	return null;
 }

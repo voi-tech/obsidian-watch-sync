@@ -45,12 +45,12 @@ Do not download source archives as plugin releases. The three files above are th
 ## Connect Stremio
 
 1. Open **Settings → Stremio Sync**.
-2. Under **Setup**, select **Connect**.
+2. Under **Connection**, select **Connect**.
 3. Open the displayed HTTPS link and approve the pairing code while signed in to Stremio.
 4. Return to Obsidian. The plugin stores the received key through Obsidian `SecretStorage`, which keeps values locally and scoped to the vault; your Stremio password never reaches the plugin.
 5. Select separate target folders for movie and series notes.
 
-If pairing fails, the dialog displays the network error and a **Try again** button. You can also enter an existing Stremio auth key manually in the settings.
+If pairing fails, the dialog displays the network error and a **Try again** button.
 
 ## Safe first sync
 
@@ -92,7 +92,7 @@ Duplicate non-empty property names are rejected because two fields cannot safely
 
 ## Templates
 
-Movie and series templates use Handlebars. Obsidian date placeholders such as `{{date:YYYY-MM-DD}}` are also supported. The settings tab includes the complete field reference and both built-in templates.
+Movie and series templates use Handlebars. Obsidian date placeholders such as `{{date:YYYY-MM-DD}}` are also supported, and both built-in templates work without configuration.
 
 Common examples:
 
@@ -171,7 +171,7 @@ Open the plugin settings and check the displayed issue. Sync is intentionally bl
 
 ### Pairing fails
 
-Select **Try again** in the pairing dialog. Confirm that the approval link uses HTTPS and belongs to `stremio.com`. If the problem persists, enter an existing auth key manually.
+Select **Try again** in the pairing dialog. Confirm that the approval link uses HTTPS and belongs to `stremio.com`.
 
 ### A title is missing
 
@@ -209,7 +209,7 @@ npm run dev
 npm run check
 ```
 
-`npm run check` runs ESLint, TypeScript, the test suite, a production build, and release-asset validation. Production artifacts are `main.js`, `manifest.json`, and `styles.css`; source maps and runtime data are not committed.
+`npm run check` runs ESLint, TypeScript, the test suite, a production build, a mobile-bundle compatibility scan, and release-asset validation. Production artifacts are `main.js`, `manifest.json`, and `styles.css`; source maps and runtime data are not committed.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the contribution and release process.
 
@@ -221,7 +221,7 @@ This product uses the TMDB API but is not endorsed or certified by TMDB.
 
 Stremio Sync is an independent community project. It is not affiliated with, endorsed by, or sponsored by Stremio, TMDB, Obsidian, or their respective owners. Stremio, TMDB, Obsidian, and related marks belong to their respective owners.
 
-The plugin uses [`stremio-watched-bitfield`](https://www.npmjs.com/package/stremio-watched-bitfield) to decode Stremio episode progress and [Handlebars](https://handlebarsjs.com/) for note templates.
+The plugin uses [pako](https://github.com/nodeca/pako) to decode Stremio episode-progress data and [Handlebars](https://handlebarsjs.com/) for note templates.
 
 ## License
 

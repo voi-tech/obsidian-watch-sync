@@ -35,6 +35,7 @@ import {
 	managedBlockTemplate,
 	readManagedBlock,
 } from '../vault/managed-block';
+import { t } from '../i18n';
 
 export interface EngineOptions {
 	settings: StremioSyncSettings;
@@ -81,7 +82,7 @@ export async function buildPlan(
 	for (const media of items) {
 		const folder = media.type === 'series' ? settings.seriesFolder : settings.movieFolder;
 		if (!folder) {
-			plan.skipped.push({ mediaId: media.id, title: media.title, reason: 'no target folder configured' });
+				plan.skipped.push({ mediaId: media.id, title: media.title, reason: t('plan.noFolder') });
 			continue;
 		}
 
@@ -103,7 +104,7 @@ export async function buildPlan(
 		}
 
 		const { note, certain } = outcome.match;
-		const sameNoteReason = 'more than one Stremio library item matches the same note';
+			const sameNoteReason = t('conflict.sameSource');
 		if (blockedNotes.has(note.path)) {
 			plan.conflicts.push({
 				mediaId: media.id,
@@ -186,7 +187,7 @@ function planCreate(
 			conflict: {
 				mediaId: media.id,
 				title: media.title,
-				reason: 'a file with this name already exists but was not matched',
+				reason: t('plan.existingFile'),
 				candidates: [path],
 			},
 		};
@@ -197,7 +198,7 @@ function planCreate(
 			skipped: {
 				mediaId: media.id,
 				title: media.title,
-				reason: 'no episode list in the metadata — the series note would be empty',
+				reason: t('plan.noEpisodes'),
 			},
 		};
 	}

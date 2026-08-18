@@ -1,5 +1,6 @@
 import { Modal, Notice, Setting, type App } from 'obsidian';
 import { createLinkCode, readLinkAuthKey, type LinkCode } from '../stremio/link';
+import { t } from '../i18n';
 
 const POLL_INTERVAL_MS = 2000;
 const TIMEOUT_MS = 3 * 60 * 1000;
@@ -18,6 +19,10 @@ export class ConnectModal extends Modal {
 	private done = false;
 	private polling = false;
 	private closed = false;
+	private readonly handleVisibilityChange = (): void => {
+		if (document.visibilityState === 'hidden') return;
+		void this.poll();
+	};
 
 	constructor(
 		app: App,
@@ -28,13 +33,15 @@ export class ConnectModal extends Modal {
 
 	override onOpen(): void {
 		this.closed = false;
-		this.setTitle('Connect to Stremio');
+		document.addEventListener('visibilitychange', this.handleVisibilityChange);
+		this.setTitle(t('connect.title'));
 		this.modalEl.addClass('stremio-sync-connect');
 		void this.begin();
 	}
 
 	override onClose(): void {
 		this.closed = true;
+		document.removeEventListener('visibilitychange', this.handleVisibilityChange);
 		this.stopPolling();
 		this.contentEl.empty();
 	}
@@ -46,7 +53,7 @@ export class ConnectModal extends Modal {
 		this.statusEl = null;
 		const { contentEl } = this;
 		contentEl.empty();
-		contentEl.createEl('p', { text: 'Generating a pairing code…', cls: 'stremio-sync-note' });
+		contentEl.createEl('p', { text: t('connect.generating'), cls: 'stremio-sync-note' });
 
 		try {
 			this.link = await createLinkCode();
@@ -58,7 +65,7 @@ export class ConnectModal extends Modal {
 			});
 			new Setting(contentEl).addButton((button) =>
 				button
-					.setButtonText('Try again')
+					.setButtonText(t('connect.retry'))
 					.setCta()
 					.onClick(() => void this.begin()),
 			);
@@ -67,40 +74,40 @@ export class ConnectModal extends Modal {
 
 		contentEl.empty();
 		contentEl.createEl('p', {
-			text: 'Approve this code while signed in to Stremio. Nothing else is needed — your password never reaches the plugin.',
+			text: t('connect.approve'),
 		});
 
 		contentEl.createDiv({ cls: 'stremio-sync-code', text: this.link.code });
 
 		const steps = contentEl.createEl('ol', { cls: 'stremio-sync-steps' });
-		steps.createEl('li', { text: 'Open the approval page and sign in if you are not already.' });
-		steps.createEl('li', { text: 'Check that the code shown there matches the one above, and confirm.' });
-		steps.createEl('li', { text: 'Come back here — the key arrives on its own.' });
+		steps.createEl('li', { text: t('connect.step.open') });
+		steps.createEl('li', { text: t('connect.step.check') });
+		steps.createEl('li', { text: t('connect.step.return') });
 
 		this.statusEl = contentEl.createEl('p', {
-			text: 'Waiting for approval…',
+			text: t('connect.waiting'),
 			cls: 'stremio-sync-note',
 		});
 
 		new Setting(contentEl)
 			.addButton((button) =>
 				button
-					.setButtonText('Open the approval page')
+					.setButtonText(t('connect.open'))
 					.setCta()
 					.onClick(() => {
 						if (this.link) window.open(this.link.link, '_blank', 'noopener,noreferrer');
 					}),
 			)
 			.addButton((button) =>
-				button.setButtonText('Copy the link').onClick(() => {
+					button.setButtonText(t('connect.copy')).onClick(() => {
 					if (!this.link) return;
 					void navigator.clipboard.writeText(this.link.link).then(
-						() => new Notice('Stremio Sync: link copied.'),
-						() => new Notice('Stremio Sync: could not reach the clipboard.'),
+						() => new Notice(t('connect.linkCopied')),
+						() => new Notice(t('clipboard.failed')),
 					);
 				}),
 			)
-			.addButton((button) => button.setButtonText('Cancel').onClick(() => this.close()));
+			.addButton((button) => button.setButtonText(t('connect.cancel')).onClick(() => this.close()));
 
 		this.startPolling();
 	}
@@ -121,7 +128,7 @@ export class ConnectModal extends Modal {
 
 		if (Date.now() - this.startedAt > TIMEOUT_MS) {
 			this.stopPolling();
-			this.statusEl?.setText('The code expired. Close this and try again.');
+			this.statusEl?.setText(t('connect.expired'));
 			this.statusEl?.addClass('stremio-sync-connect-error');
 			return;
 		}
@@ -135,7 +142,7 @@ export class ConnectModal extends Modal {
 			this.stopPolling();
 			await this.onKey(authKey);
 			if (this.closed) return;
-			new Notice('Stremio Sync: connected.');
+				new Notice(t('connect.connected'));
 			this.close();
 		} catch (error) {
 			if (this.closed) return;
@@ -152,7 +159,7 @@ export class ConnectModal extends Modal {
 		this.statusEl?.addClass('stremio-sync-connect-error');
 		new Setting(this.contentEl).addButton((button) =>
 			button
-				.setButtonText('Try again')
+					.setButtonText(t('connect.retry'))
 				.setCta()
 				.onClick(() => void this.begin()),
 		);

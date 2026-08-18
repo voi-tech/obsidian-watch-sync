@@ -1,4 +1,5 @@
 import { Modal, Setting, type App } from 'obsidian';
+import { t } from '../i18n';
 
 /** Yes/no for an action that cannot be undone by pressing the same button again. */
 export class ConfirmModal extends Modal {
@@ -28,7 +29,7 @@ export class ConfirmModal extends Modal {
 						this.close();
 					});
 			})
-			.addButton((button) => button.setButtonText('Cancel').onClick(() => this.close()));
+			.addButton((button) => button.setButtonText(t('connect.cancel')).onClick(() => this.close()));
 	}
 
 	override onClose(): void {

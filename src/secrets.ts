@@ -1,4 +1,5 @@
 import type { App } from 'obsidian';
+import { t } from './i18n';
 
 /**
  * Thin wrapper over Obsidian's vault-specific SecretStorage (1.11.4+).
@@ -24,9 +25,7 @@ export class MissingSecretError extends Error {
 export function requireSecret(app: App, secretId: string, label: string): string {
 	const value = readSecret(app, secretId);
 	if (!value) {
-		throw new MissingSecretError(
-			`Missing secret "${label}". Open the Stremio Sync settings and store it in Obsidian SecretStorage.`,
-		);
+		throw new MissingSecretError(t('secret.missing', { label }));
 	}
 	return value;
 }

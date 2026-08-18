@@ -1,6 +1,7 @@
 import { requestUrl } from 'obsidian';
 import { z } from 'zod';
 import { StremioApiError } from './api';
+import { t } from '../i18n';
 
 /**
  * Stremio's own pairing flow — the one its TV apps use.
@@ -46,15 +47,15 @@ export async function createLinkCode(): Promise<LinkCode> {
 		response = await requestUrl({ url: `${LINK_API}/create`, method: 'GET', throw: false });
 	} catch (error) {
 		throw new StremioApiError(
-			`Could not reach Stremio's pairing service: ${error instanceof Error ? error.message : String(error)}`,
+			t('link.reach', { error: error instanceof Error ? error.message : String(error) }),
 		);
 	}
 	if (response.status !== 200) {
-		throw new StremioApiError(`Stremio's pairing service returned HTTP ${response.status}.`);
+		throw new StremioApiError(t('link.http', { status: response.status }));
 	}
 	const parsed = createSchema.safeParse(response.json);
 	if (!parsed.success || !isAllowedApprovalUrl(parsed.data.link)) {
-		throw new StremioApiError('Stremio\'s pairing service answered in an unexpected shape.', 'shape');
+		throw new StremioApiError(t('link.shape'), 'shape');
 	}
 	return { code: parsed.data.code, link: parsed.data.link };
 }
@@ -74,15 +75,15 @@ export async function readLinkAuthKey(code: string): Promise<string | null> {
 		});
 	} catch (error) {
 		throw new StremioApiError(
-			`Could not reach Stremio's pairing service: ${error instanceof Error ? error.message : String(error)}`,
+			t('link.reach', { error: error instanceof Error ? error.message : String(error) }),
 		);
 	}
 	if (response.status !== 200) {
-		throw new StremioApiError(`Stremio's pairing service returned HTTP ${response.status}.`);
+		throw new StremioApiError(t('link.http', { status: response.status }));
 	}
 	const parsed = readSchema.safeParse(response.json);
 	if (!parsed.success) {
-		throw new StremioApiError('Stremio\'s pairing service answered in an unexpected shape.', 'shape');
+		throw new StremioApiError(t('link.shape'), 'shape');
 	}
 	return parsed.data.result?.authKey ?? null;
 }

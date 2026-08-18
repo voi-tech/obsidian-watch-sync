@@ -8,6 +8,7 @@ import {
 	type CheckboxChange,
 } from '../vault/episodes';
 import type { VaultGateway } from '../vault/gateway';
+import { t } from '../i18n';
 
 /**
  * Every change to the vault is one of these objects. They carry both a
@@ -57,7 +58,7 @@ export class CreateFile extends BaseOperation {
 	}
 
 	summary(): string {
-		return 'Create the note';
+		return t('operation.create');
 	}
 
 	async apply(gateway: VaultGateway): Promise<void> {
@@ -87,7 +88,7 @@ export class AdoptNote extends BaseOperation {
 
 	summary(): string {
 		const keys = Object.keys(this.frontmatter).join(', ');
-		return `Adopt this note, matched by ${this.tier}${keys ? ` · sets ${keys}` : ''}`;
+		return t('operation.adopt', { tier: this.tier, sets: keys ? ` · ${t('operation.sets', { keys })}` : '' });
 	}
 
 	async apply(gateway: VaultGateway): Promise<void> {
@@ -112,8 +113,8 @@ export class UpdateFrontmatter extends BaseOperation {
 
 	summary(): string {
 		const parts = [...this.changedKeys];
-		if (this.tags.length > 0) parts.push(`tags += ${this.tags.join(', ')}`);
-		return `Properties: ${parts.join(', ')}`;
+		if (this.tags.length > 0) parts.push(t('operation.tags', { tags: this.tags.join(', ') }));
+		return t('operation.properties', { parts: parts.join(', ') });
 	}
 
 	async apply(gateway: VaultGateway): Promise<void> {
@@ -137,7 +138,7 @@ export class UpdateEpisodes extends BaseOperation {
 	summary(): string {
 		const ticked = this.changes.filter((change) => change.to).length;
 		const unticked = this.changes.length - ticked;
-		const counts = [ticked > 0 ? `tick ${ticked}` : '', unticked > 0 ? `untick ${unticked}` : '']
+		const counts = [ticked > 0 ? t('operation.tick', { count: ticked }) : '', unticked > 0 ? t('operation.untick', { count: unticked }) : '']
 			.filter(Boolean)
 			.join(', ');
 		const shown = this.changes
@@ -145,7 +146,7 @@ export class UpdateEpisodes extends BaseOperation {
 			.map((change) => `S${change.season}E${change.episode}`)
 			.join(', ');
 		const more = this.changes.length > 3 ? ` +${this.changes.length - 3}` : '';
-		return `Episodes: ${counts} · ${shown}${more}`;
+		return t('operation.episodes', { counts, shown, more });
 	}
 
 	async apply(gateway: VaultGateway): Promise<void> {
@@ -167,7 +168,7 @@ export class AppendSeason extends BaseOperation {
 	}
 
 	summary(): string {
-		return `Add season ${this.season.number} (${this.season.episodes.length} episodes)`;
+		return t('operation.season', { number: this.season.number, count: this.season.episodes.length });
 	}
 
 	async apply(gateway: VaultGateway): Promise<void> {
@@ -198,7 +199,7 @@ export class UpdateManagedBlock extends BaseOperation {
 	}
 
 	summary(): string {
-		return 'Refresh the managed block';
+		return t('operation.refreshBlock');
 	}
 
 	async apply(gateway: VaultGateway): Promise<void> {
@@ -220,7 +221,7 @@ export class AddManagedBlock extends BaseOperation {
 	}
 
 	summary(): string {
-		return 'Add the managed block';
+		return t('operation.addBlock');
 	}
 
 	async apply(gateway: VaultGateway): Promise<void> {
@@ -249,7 +250,7 @@ export class RewriteBody extends BaseOperation {
 	}
 
 	summary(): string {
-		return 'Rewrite the body from the template (replaces the current text)';
+		return t('operation.rewrite');
 	}
 
 	async apply(gateway: VaultGateway): Promise<void> {

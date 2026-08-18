@@ -1,4 +1,4 @@
-import { Notice, Plugin } from 'obsidian';
+import { Notice, Platform, Plugin } from 'obsidian';
 import { configurationProblem } from './configuration';
 import { DERIVED_SCHEMA_VERSION, MetadataCache } from './meta/cache';
 import {
@@ -17,6 +17,7 @@ import { ObsidianVaultGateway } from './vault/writer';
 import { PreviewModal } from './ui/preview-modal';
 import { ReportModal } from './ui/report-modal';
 import { summarize, SummaryModal } from './ui/summary-modal';
+import { t } from './i18n';
 
 const MIN_AUTO_SYNC_MINUTES = 15;
 
@@ -56,24 +57,24 @@ export default class StremioSyncPlugin extends Plugin {
 
 		this.addSettingTab(new StremioSyncSettingTab(this));
 
-		this.addRibbonIcon('clapperboard', 'Stremio Sync', () => {
+		this.addRibbonIcon('clapperboard', t('app.ribbon'), () => {
 			void this.sync();
 		});
 
-		this.addCommand({ id: 'sync', name: 'Sync now', callback: () => void this.sync() });
+		this.addCommand({ id: 'sync', name: t('command.sync'), callback: () => void this.sync() });
 		this.addCommand({
 			id: 'preview',
-			name: 'Preview changes (writes nothing)',
+			name: t('command.preview'),
 			callback: () => void this.sync({ previewOnly: true }),
 		});
 		this.addCommand({
 			id: 'show-library-summary',
-			name: 'Show library summary',
+			name: t('command.summary'),
 			callback: () => void this.showLibrarySummary(),
 		});
 		this.addCommand({
 			id: 'clear-metadata-cache',
-			name: 'Clear the metadata cache',
+			name: t('command.cache'),
 			callback: () => void this.clearMetadataCache(),
 		});
 
@@ -95,7 +96,7 @@ export default class StremioSyncPlugin extends Plugin {
 
 	restartAutoSync(): void {
 		this.clearAutoSync();
-		if (!this.layoutReady) return;
+		if (!this.layoutReady || Platform.isMobileApp) return;
 		const { autoSyncEnabled, autoSyncIntervalMinutes } = this.data.settings;
 		if (!autoSyncEnabled) return;
 		const minutes = Math.max(MIN_AUTO_SYNC_MINUTES, autoSyncIntervalMinutes);
@@ -114,7 +115,7 @@ export default class StremioSyncPlugin extends Plugin {
 		try {
 			this.cache.clear();
 			await this.cache.save();
-			new Notice('Stremio Sync: metadata cache cleared.');
+			new Notice(t('notice.cacheCleared'));
 		} catch (error) {
 			this.reportError(error);
 		}
@@ -132,20 +133,20 @@ export default class StremioSyncPlugin extends Plugin {
 	async sync(options: { previewOnly?: boolean; silent?: boolean } = {}): Promise<void> {
 		await this.waitUntilReady();
 		if (this.busy) {
-			if (!options.silent) new Notice('Stremio Sync: a sync is already running.');
+			if (!options.silent) new Notice(t('notice.busy'));
 			return;
 		}
 
 		const problem = this.configurationProblem();
 		if (problem) {
 			if (!options.silent) {
-				new Notice(`Stremio Sync: ${problem}`, 10_000);
+				new Notice(t('notice.config', { problem }), 10_000);
 			}
 			return;
 		}
 
 		this.busy = true;
-		const notice = options.silent ? null : new Notice('Stremio Sync: fetching your library…', 0);
+		const notice = options.silent ? null : new Notice(t('notice.fetching'), 0);
 		let handedOffToModal = false;
 		try {
 			const service = new SyncService(this.app, this.data, this.gateway, this.cache);
@@ -154,7 +155,7 @@ export default class StremioSyncPlugin extends Plugin {
 			if (options.silent && !(await service.hasChangesSinceLastSync())) return;
 
 			const { plan, warnings } = await service.prepare((done, total) => {
-				notice?.setMessage(`Stremio Sync: metadata ${done}/${total}…`);
+				notice?.setMessage(t('notice.metadata', { done, total }));
 			});
 			notice?.hide();
 
@@ -180,7 +181,7 @@ export default class StremioSyncPlugin extends Plugin {
 			}
 
 			if (planSize(plan) === 0) {
-				if (!options.silent) new Notice('Stremio Sync: nothing to do.');
+				if (!options.silent) new Notice(t('notice.nothing'));
 				return;
 			}
 
@@ -198,12 +199,12 @@ export default class StremioSyncPlugin extends Plugin {
 		plan: SyncPlan,
 		options: { silent?: boolean; deselected?: number } = {},
 	): Promise<void> {
-		const notice = options.silent ? null : new Notice('Stremio Sync: writing…', 0);
+		const notice = options.silent ? null : new Notice(t('notice.writing'), 0);
 		try {
 			const result = await service.apply(plan, {
 				deselected: options.deselected,
 				onProgress: (done, total) => {
-					notice?.setMessage(`Stremio Sync: writing ${done}/${total}…`);
+				notice?.setMessage(t('notice.writingProgress', { done, total }));
 				},
 			});
 			await this.persist();
@@ -211,7 +212,7 @@ export default class StremioSyncPlugin extends Plugin {
 
 			if (options.silent) {
 				if (result.errors.length > 0) {
-					new Notice(`Stremio Sync: ${result.errors.length} error(s) during the sync.`, 10_000);
+					new Notice(t('notice.errors', { count: result.errors.length }), 10_000);
 				}
 				return;
 			}
@@ -263,7 +264,7 @@ export default class StremioSyncPlugin extends Plugin {
 		}
 		console.error('[stremio-sync]', error);
 		new Notice(
-			`Stremio Sync: unexpected error — ${error instanceof Error ? error.message : String(error)}`,
+			t('notice.unexpected', { error: error instanceof Error ? error.message : String(error) }),
 			10_000,
 		);
 	}

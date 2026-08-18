@@ -2,6 +2,7 @@ import { Modal, type App } from 'obsidian';
 import type { LibraryItem } from '../model/schema';
 import { isSupportedType, selectRelevant, type SelectionOptions } from '../stremio/api';
 import { titleWatchStatus } from '../stremio/watch-status';
+import { t } from '../i18n';
 
 export interface LibrarySummary {
 	total: number;
@@ -77,18 +78,18 @@ export class SummaryModal extends Modal {
 
 	override onOpen(): void {
 		const { contentEl } = this;
-		this.setTitle('Stremio library');
+		this.setTitle(t('summary.title'));
 
 		const rows: [string, string][] = [
-			['Titles in total', String(this.summary.total)],
-			['Movies', String(this.summary.movies)],
-			['Series', String(this.summary.series)],
-			['Watched', String(this.summary.watched)],
-			['In progress', String(this.summary.inProgress)],
-			['Only sampled', String(this.summary.sampled)],
-			['Never played', String(this.summary.neverPlayed)],
-			['Would be synced', String(this.summary.willSync)],
-			['TMDB-keyed ids', String(this.summary.tmdbIds)],
+			[t('summary.total'), String(this.summary.total)],
+			[t('summary.movies'), String(this.summary.movies)],
+			[t('summary.series'), String(this.summary.series)],
+			[t('summary.watched'), String(this.summary.watched)],
+			[t('summary.inProgress'), String(this.summary.inProgress)],
+			[t('summary.sampled'), String(this.summary.sampled)],
+			[t('summary.neverPlayed'), String(this.summary.neverPlayed)],
+			[t('summary.willSync'), String(this.summary.willSync)],
+			[t('summary.tmdbIds'), String(this.summary.tmdbIds)],
 		];
 
 		const table = contentEl.createEl('table', { cls: 'stremio-sync-summary' });
@@ -99,7 +100,7 @@ export class SummaryModal extends Modal {
 		}
 
 		if (this.summary.sampledExamples.length > 0) {
-			contentEl.createEl('h4', { text: 'Counted as only sampled' });
+			contentEl.createEl('h4', { text: t('summary.sampledHeading') });
 			const list = contentEl.createEl('ul');
 			for (const entry of this.summary.sampledExamples) {
 				list.createEl('li', { text: `${entry.name} — ${entry.minutes.toFixed(1)} min` });
@@ -107,7 +108,7 @@ export class SummaryModal extends Modal {
 		}
 
 		if (this.summary.newest.length > 0) {
-			contentEl.createEl('h4', { text: 'Recently watched' });
+			contentEl.createEl('h4', { text: t('summary.recentHeading') });
 			const list = contentEl.createEl('ol');
 			for (const entry of this.summary.newest) {
 				list.createEl('li', { text: `${entry.name} — ${entry.when}` });
@@ -115,7 +116,7 @@ export class SummaryModal extends Modal {
 		}
 
 		contentEl.createEl('p', {
-			text: 'This summary is read-only. Nothing was written to the vault.',
+			text: t('summary.readOnly'),
 			cls: 'stremio-sync-note',
 		});
 	}

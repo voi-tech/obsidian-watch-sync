@@ -2,11 +2,15 @@
  * @vitest-environment jsdom
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { Platform } from 'obsidian';
 import StremioSyncPlugin from '../src/main';
 import { DEFAULT_DATA } from '../src/model/types';
 
 beforeEach(() => vi.useFakeTimers());
-afterEach(() => vi.useRealTimers());
+afterEach(() => {
+	Platform.isMobileApp = false;
+	vi.useRealTimers();
+});
 
 describe('automatic sync timer lifecycle', () => {
 	it('registers the active interval with Obsidian and replaces it without overlap', () => {
@@ -55,6 +59,18 @@ describe('automatic sync timer lifecycle', () => {
 		lifecycle.layoutReady = true;
 		plugin.restartAutoSync();
 		expect(vi.getTimerCount()).toBe(1);
+	});
+
+	it('does not schedule background sync on mobile', () => {
+		Platform.isMobileApp = true;
+		const plugin = new StremioSyncPlugin({} as never, {} as never);
+		plugin.data = structuredClone(DEFAULT_DATA);
+		plugin.data.settings.autoSyncEnabled = true;
+
+		plugin.restartAutoSync();
+
+		expect(vi.getTimerCount()).toBe(0);
+		expect(plugin.data.settings.autoSyncEnabled).toBe(true);
 	});
 });
 

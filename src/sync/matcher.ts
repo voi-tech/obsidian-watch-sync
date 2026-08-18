@@ -1,6 +1,7 @@
 import type { Conflict, NormalizedMedia } from '../model/types';
 import { parseWebUrl } from '../stremio/links';
 import { sanitizeFilename } from '../vault/template';
+import { t } from '../i18n';
 
 export interface NoteRef {
 	path: string;
@@ -38,7 +39,7 @@ export function matchNote(
 	const bySource = notes.filter((note) => note.source && parseWebUrl(note.source)?.id === media.id);
 	if (bySource.length === 1) return { match: { note: bySource[0], tier: 'source', certain: true } };
 	if (bySource.length > 1) {
-		return { conflict: conflictOf(media, 'several notes point at the same Stremio id', bySource) };
+		return { conflict: conflictOf(media, t('conflict.sameSource'), bySource) };
 	}
 
 	const indexedPath = index[media.id];
@@ -56,13 +57,13 @@ export function matchNote(
 		note.aliases.some((alias) => titles.some((title) => equalsLoose(alias, title))),
 	);
 	if (byAlias.length === 1) return { match: { note: byAlias[0], tier: 'alias', certain: false } };
-	if (byAlias.length > 1) return { conflict: conflictOf(media, 'the same alias appears in several notes', byAlias) };
+		if (byAlias.length > 1) return { conflict: conflictOf(media, t('conflict.sameAlias'), byAlias) };
 
 	const expected = expectedBasenames(media);
 	const byFilename = unclaimed.filter((note) => expected.some((name) => equalsLoose(note.basename, name)));
 	if (byFilename.length === 1) return { match: { note: byFilename[0], tier: 'filename', certain: false } };
 	if (byFilename.length > 1) {
-		return { conflict: conflictOf(media, 'several notes share this file name', byFilename) };
+			return { conflict: conflictOf(media, t('conflict.sameFilename'), byFilename) };
 	}
 
 	// The vault prefixes some notes with a collection — "Avengers - The Avengers
@@ -73,7 +74,7 @@ export function matchNote(
 		: [];
 	if (bySuffix.length === 1) return { match: { note: bySuffix[0], tier: 'filename-suffix', certain: false } };
 	if (bySuffix.length > 1) {
-		return { conflict: conflictOf(media, 'several notes match on the file name suffix', bySuffix) };
+		return { conflict: conflictOf(media, t('conflict.sameSuffix'), bySuffix) };
 	}
 
 	return { match: null };

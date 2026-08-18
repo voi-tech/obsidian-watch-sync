@@ -16,6 +16,7 @@ import {
 import { episodeNumber, orderedVideos, parseReleaseInfo, parseRuntimeMinutes } from './cinemeta';
 import { castNames, directorOf, imageUrl, yearOf, type TmdbClient } from './tmdb';
 import type { TmdbMovie, TmdbSeason, TmdbSeries } from '../model/schema';
+import { t } from '../i18n';
 
 export interface NormalizeWarning {
 	mediaId: string;
@@ -76,7 +77,7 @@ async function normalizeMovie(item: LibraryItem, sources: MetadataSources): Prom
 	if (sources.tmdb) {
 		if (!tmdbId && imdbId) tmdbId = (await sources.tmdb.findByImdbId(imdbId)).movieId;
 		if (tmdbId) tmdbMovie = await sources.tmdb.movieWithDescription(tmdbId);
-		if (!tmdbMovie) warnings.push({ mediaId: item._id, message: 'no data from TMDB — fell back to Cinemeta' });
+		if (!tmdbMovie) warnings.push({ mediaId: item._id, message: t('warning.tmdb') });
 	}
 
 	const needsCinemeta = !tmdbMovie || !tmdbMovie.overview || !tmdbMovie.poster_path;
@@ -136,7 +137,7 @@ async function normalizeSeries(item: LibraryItem, sources: MetadataSources): Pro
 	if (!cinemeta) {
 		warnings.push({
 			mediaId: item._id,
-			message: 'no data from Cinemeta — the episode ordering cannot be reconstructed reliably',
+			message: t('warning.cinemeta'),
 		});
 	}
 

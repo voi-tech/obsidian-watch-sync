@@ -1,6 +1,14 @@
-import WatchedBitField from 'stremio-watched-bitfield';
 import type { LibraryItemState } from '../model/schema';
 import type { EpisodeProgress } from '../model/types';
+import { t } from '../i18n';
+
+// pako 1.0 is browser-safe but ships without TypeScript declarations.
+// @ts-expect-error pako 1.0 has no bundled declaration file.
+import pako from 'pako';
+
+type PakoModule = { inflate(data: Uint8Array): Uint8Array };
+
+const inflate = (data: Uint8Array): Uint8Array => (pako as unknown as PakoModule).inflate(data);
 
 export interface EpisodeInput {
 	season: number;
@@ -49,18 +57,18 @@ export function decodeSeriesProgress(state: LibraryItemState, episodes: EpisodeI
 	}
 
 	const videoIds = episodes.map((episode) => episode.videoId);
-	let field: WatchedBitField;
+	let watched: (videoId: string) => boolean;
 	try {
-		field = WatchedBitField.constructAndResize(state.watched, videoIds);
+		watched = decodeWatchedField(state.watched, videoIds);
 	} catch (error) {
 		return {
 			episodes: toProgress(() => false),
 			consistent: false,
-			reason: `could not decode the watched field (${error instanceof Error ? error.message : String(error)})`,
+			reason: t('progress.decode', { error: error instanceof Error ? error.message : String(error) }),
 		};
 	}
 
-	const decoded = toProgress((videoId) => field.getVideo(videoId));
+	const decoded = toProgress(watched);
 
 	// `constructAndResize` already compensates when episodes were appended or the
 	// list start shifted, so a single unwatched episode proves nothing. Only two
@@ -73,7 +81,7 @@ export function decodeSeriesProgress(state: LibraryItemState, episodes: EpisodeI
 		return {
 			episodes: decoded,
 			consistent: false,
-			reason: `the current episode ${currentVideoId} is missing from the episode list in the metadata`,
+			reason: t('progress.currentMissing', { id: currentVideoId }),
 		};
 	}
 
@@ -84,11 +92,62 @@ export function decodeSeriesProgress(state: LibraryItemState, episodes: EpisodeI
 		return {
 			episodes: decoded,
 			consistent: false,
-			reason: `Stremio reports ${state.timesWatched} completed playbacks but the decoded bitfield is empty — the episode ordering does not line up`,
+			reason: t('progress.bitfieldMismatch', { count: state.timesWatched ?? 0 }),
 		};
 	}
 
 	return { episodes: decoded, consistent: true };
+}
+
+/**
+ * Decodes Stremio's `{lastVideoId}:{length}:{base64(deflate(bits))}` field.
+ * Bits are packed least-significant-bit first, matching the original Stremio
+ * implementation. The field is shifted when the metadata list loses items at
+ * the beginning, while newly appended items remain unwatched.
+ */
+function decodeWatchedField(serialized: string, videoIds: string[]): (videoId: string) => boolean {
+	const components = serialized.split(':');
+	if (components.length < 3) throw new Error('invalid components length');
+
+	const encoded = components.pop() ?? '';
+	const lastLengthText = components.pop() ?? '';
+	const lastLength = Number.parseInt(lastLengthText, 10);
+	if (!Number.isInteger(lastLength) || lastLength < 0) throw new Error('invalid bitfield length');
+
+	const lastVideoId = components.join(':');
+	const lastVideoIndex = videoIds.indexOf(lastVideoId);
+	const offset = lastLength - 1 - lastVideoIndex;
+	const values = new Uint8Array(Math.ceil(videoIds.length / 8));
+
+	// An unknown last ID or a list that moved backwards cannot be aligned safely.
+	if (lastVideoIndex === -1 || offset < 0) return (videoId) => getBit(values, videoIds.indexOf(videoId));
+
+	const packed = inflate(decodeBase64(encoded));
+	const firstSourceBit = Math.max(0, offset);
+	const firstTargetBit = offset > 0 ? 0 : firstSourceBit;
+	const lastTargetBit = offset > 0 ? Math.min(videoIds.length, lastLength - offset) : videoIds.length;
+	for (let targetBit = firstTargetBit; targetBit < lastTargetBit; targetBit += 1) {
+		const sourceBit = targetBit + (offset > 0 ? offset : 0);
+		if (sourceBit < lastLength && getBit(packed, sourceBit)) setBit(values, targetBit);
+	}
+
+	return (videoId) => getBit(values, videoIds.indexOf(videoId));
+}
+
+function decodeBase64(encoded: string): Uint8Array {
+	const binary = atob(encoded);
+	const decoded = new Uint8Array(binary.length);
+	for (let index = 0; index < binary.length; index += 1) decoded[index] = binary.charCodeAt(index);
+	return decoded;
+}
+
+function getBit(values: Uint8Array, index: number): boolean {
+	if (index < 0) return false;
+	return (values[index >> 3] & (1 << (index & 7))) !== 0;
+}
+
+function setBit(values: Uint8Array, index: number): void {
+	if (index >= 0) values[index >> 3] |= 1 << (index & 7);
 }
 
 function looksLikeEpisodeId(videoId: string): boolean {

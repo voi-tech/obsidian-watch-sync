@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { cinemetaMetaSchema } from '../src/model/schema';
 import { orderedVideos, parseReleaseInfo, parseRuntimeMinutes, episodeNumber } from '../src/meta/cinemeta';
@@ -49,6 +50,26 @@ describe('cinemeta ordering', () => {
 });
 
 describe('decodeSeriesProgress', () => {
+	it('decodes a real Stremio field without the Node-only bitfield package', () => {
+		const { episodes, consistent } = decodeSeriesProgress(hijack.state, hijackEpisodes());
+		expect(consistent).toBe(true);
+		expect(episodes.filter((episode) => episode.watched).map((episode) => episode.videoId)).toEqual([
+			'tt19854762:2:1',
+			'tt19854762:2:2',
+			'tt19854762:2:3',
+			'tt19854762:2:4',
+			'tt19854762:2:5',
+			'tt19854762:2:6',
+			'tt19854762:2:7',
+			'tt19854762:2:8',
+		]);
+
+		const packageJson = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as {
+			dependencies?: Record<string, string>;
+		};
+		expect(packageJson.dependencies?.['stremio-watched-bitfield']).toBeUndefined();
+	});
+
 	it('decodes the real Hijack bitfield: season 2 watched, season 1 not', () => {
 		const { episodes, consistent } = decodeSeriesProgress(hijack.state, hijackEpisodes());
 		expect(consistent).toBe(true);
