@@ -4,6 +4,13 @@ All notable changes to Stremio Sync are documented here. Releases use the `YY.M.
 
 ## [Unreleased]
 
+## [26.8.5] — 2026-08-20
+
+### Fixed
+
+- Allow the preview modal to scroll to expanded conflict, skipped, and metadata-warning sections on mobile.
+- Preserve Obsidian's native checkbox sizing and shape in the mobile preview list.
+
 ## [26.8.4] — 2026-08-18
 
 ### Added
@@ -57,7 +64,8 @@ All notable changes to Stremio Sync are documented here. Releases use the `YY.M.
 - Secure Stremio pairing with retry and approved-link validation.
 - Automated lint, typecheck, tests, production build, release-asset checks, and draft-release workflow.
 
-[Unreleased]: https://github.com/voi-tech/obsidian-stremio-sync/compare/26.8.4...HEAD
+[Unreleased]: https://github.com/voi-tech/obsidian-stremio-sync/compare/26.8.5...HEAD
+[26.8.5]: https://github.com/voi-tech/obsidian-stremio-sync/releases/tag/26.8.5
 [26.8.4]: https://github.com/voi-tech/obsidian-stremio-sync/releases/tag/26.8.4
 [26.8.3]: https://github.com/voi-tech/obsidian-stremio-sync/releases/tag/26.8.3
 [26.8.2]: https://github.com/voi-tech/obsidian-stremio-sync/releases/tag/26.8.2

@@ -1,6 +1,6 @@
 {
   "name": "obsidian-stremio-sync",
-  "version": "26.8.4",
+  "version": "26.8.5",
   "description": "Safely sync a Stremio library and watch progress into customizable movie and series notes.",
   "author": "voitech",
   "license": "MIT",

@@ -17,7 +17,7 @@ Stremio Sync is an Obsidian plugin for Obsidian 1.13.0+ that imports your Stremi
 ## Requirements
 
 - Obsidian 1.13.0 or later.
-- Desktop Obsidian, or the experimental 26.8.4 mobile beta on iOS and Android.
+- Desktop Obsidian, or the experimental 26.8.5 mobile beta on iOS and Android.
 - A Stremio account with an existing library.
 - Optional: a TMDB API key for localized and richer metadata.
 
@@ -35,7 +35,7 @@ Until then, use the manual installation method.
 
 ### Mobile beta through BRAT
 
-The 26.8.4 prerelease is experimental and is not a stable mobile release. On iOS or Android, use **BRAT: Add a beta plugin for testing** and enter `voi-tech/obsidian-stremio-sync`. Test with a disposable vault or an up-to-date backup.
+The 26.8.5 prerelease is experimental and is not a stable mobile release. On iOS or Android, use **BRAT: Add a beta plugin for testing** and enter `voi-tech/obsidian-stremio-sync`. Test with a disposable vault or an up-to-date backup.
 
 ### Manual installation
 
@@ -134,7 +134,7 @@ For series, completion requires every already-aired episode to be watched. Per-e
 
 ## Limitations
 
-- Version 26.8.4 is an experimental mobile beta, not confirmed support for iOS or Android. Test it on a disposable vault or after making an up-to-date backup, and report issues with the device and Obsidian version.
+- Version 26.8.5 is an experimental mobile beta, not confirmed support for iOS or Android. Test it on a disposable vault or after making an up-to-date backup, and report issues with the device and Obsidian version.
 - Mobile sync is manual only; automatic background sync remains desktop-only.
 - Do not run a sync simultaneously on a desktop and mobile device using the same vault.
 - One-way synchronization: Stremio → Obsidian.
