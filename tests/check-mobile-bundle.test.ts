@@ -9,7 +9,7 @@ const execFileAsync = promisify(execFile);
 const scriptPath = fileURLToPath(new URL('../scripts/check-mobile-bundle.mjs', import.meta.url));
 
 async function runScan(bundle: string): Promise<{ code: number | null; output: string }> {
-	const directory = await mkdtemp(`${tmpdir()}/stremio-sync-mobile-bundle-`);
+	const directory = await mkdtemp(`${tmpdir()}/watch-sync-mobile-bundle-`);
 	const bundlePath = `${directory}/main.js`;
 
 	try {

@@ -22,7 +22,7 @@ function fakeAdapter(initial: Record<string, string> = {}) {
 	};
 }
 
-const PATH = 'plugins/stremio-sync/cache.json';
+const PATH = 'plugins/watch-sync/cache.json';
 
 describe('MetadataCache', () => {
 	it('round-trips a value', async () => {

@@ -1,12 +1,12 @@
-.stremio-sync-ok .setting-item-description {
+.watch-sync-ok .setting-item-description {
 	color: var(--text-success);
 }
 
-.stremio-sync-todo .setting-item-description {
+.watch-sync-todo .setting-item-description {
 	color: var(--text-warning);
 }
 
-.stremio-sync-code {
+.watch-sync-code {
 	margin: 0.6em 0;
 	padding: 0.5em;
 	border: 1px dashed var(--background-modifier-border);
@@ -20,48 +20,48 @@
 	text-indent: 0.35em;
 }
 
-.stremio-sync-steps {
+.watch-sync-steps {
 	padding-left: 1.3em;
 	color: var(--text-muted);
 	font-size: var(--font-ui-smaller);
 }
 
-.stremio-sync-connect-error {
+.watch-sync-connect-error {
 	color: var(--text-error);
 }
 
-.stremio-sync-summary {
+.watch-sync-summary {
 	width: 100%;
 	border-collapse: collapse;
 	margin-bottom: 1em;
 }
 
-.stremio-sync-summary td {
+.watch-sync-summary td {
 	padding: 0.25em 0;
 	border-bottom: 1px solid var(--background-modifier-border);
 }
 
-.stremio-sync-summary td:last-child {
+.watch-sync-summary td:last-child {
 	text-align: right;
 	font-variant-numeric: tabular-nums;
 	color: var(--text-accent);
 }
 
-.stremio-sync-note {
+.watch-sync-note {
 	color: var(--text-muted);
 	font-size: var(--font-ui-smaller);
 }
 
-.stremio-sync-wide-setting {
+.watch-sync-wide-setting {
 	display: block;
 }
 
-.stremio-sync-wide-setting .setting-item-info {
+.watch-sync-wide-setting .setting-item-info {
 	width: 100%;
 	max-width: none;
 }
 
-.stremio-sync-wide-setting .setting-item-control {
+.watch-sync-wide-setting .setting-item-control {
 	display: flex;
 	flex-wrap: wrap;
 	gap: var(--size-4-1, 0.5em);
@@ -71,17 +71,42 @@
 	margin-top: var(--size-4-1, 0.5em);
 }
 
-.stremio-sync-wide-setting .setting-item-control > * {
+.watch-sync-wide-setting .setting-item-control > * {
 	min-width: 0;
 }
 
-.stremio-sync-wide-setting .setting-item-control input {
+.watch-sync-wide-setting .setting-item-control input {
 	flex: 1 1 16em;
 	min-width: 0;
 	width: auto;
 }
 
-.stremio-sync-list {
+.watch-sync-template-keys { display: grid; gap: 0.6em; width: 100%; }
+
+.watch-sync-template-property-list { display: grid; gap: 0.35em; margin-top: 0.3em; }
+
+.watch-sync-template-property-row {
+	display: grid;
+	grid-template-columns: max-content minmax(10em, 1fr) minmax(10em, 14em);
+	align-items: center;
+	gap: 0.5em;
+}
+
+.watch-sync-template-property-row button { padding: 0.2em 0.45em; font-family: var(--font-monospace); font-size: var(--font-ui-smaller); }
+
+.watch-sync-template-property-row input { width: 100%; }
+
+.watch-sync-template-key-example {
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+}
+
+@media (max-width: 700px) {
+	.watch-sync-template-property-row { grid-template-columns: max-content 1fr; }
+	.watch-sync-template-property-row input { grid-column: 1 / -1; }
+}
+
+.watch-sync-list {
 	max-height: 40vh;
 	overflow-y: auto;
 	margin: 0 0 1em;
@@ -89,39 +114,39 @@
 	font-size: var(--font-ui-smaller);
 }
 
-.stremio-sync-list li {
+.watch-sync-list li {
 	margin-bottom: 0.2em;
 	word-break: break-word;
 }
 
-.stremio-sync-list.mod-warning li {
+.watch-sync-list.mod-warning li {
 	color: var(--text-warning);
 }
 
-.stremio-sync-preview {
-	--stremio-sync-gap: 0.6em;
+.watch-sync-preview {
+	--watch-sync-gap: 0.6em;
 }
 
-.stremio-sync-preview .modal-content {
+.watch-sync-preview .modal-content {
 	display: flex;
 	flex-direction: column;
 	max-height: 72vh;
 	overflow-y: auto;
 }
 
-.stremio-sync-summary-line {
-	margin: 0 0 var(--stremio-sync-gap);
+.watch-sync-summary-line {
+	margin: 0 0 var(--watch-sync-gap);
 	color: var(--text-muted);
 }
 
-.stremio-sync-counts {
+.watch-sync-counts {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 0.4em;
-	margin-bottom: var(--stremio-sync-gap);
+	margin-bottom: var(--watch-sync-gap);
 }
 
-.stremio-sync-chip {
+.watch-sync-chip {
 	display: inline-flex;
 	align-items: center;
 	gap: 0.45em;
@@ -135,40 +160,40 @@
 	cursor: pointer;
 }
 
-.stremio-sync-chip:hover {
+.watch-sync-chip:hover {
 	background: var(--background-modifier-hover);
 }
 
-.stremio-sync-chip.is-active {
+.watch-sync-chip.is-active {
 	border-color: var(--interactive-accent);
 	background: var(--background-modifier-active-hover);
 	color: var(--text-normal);
 }
 
-.stremio-sync-chip-count {
+.watch-sync-chip-count {
 	color: var(--text-faint);
 	font-variant-numeric: tabular-nums;
 }
 
-.stremio-sync-chip.is-active .stremio-sync-chip-count {
+.watch-sync-chip.is-active .watch-sync-chip-count {
 	color: var(--text-accent);
 }
 
-.stremio-sync-search input {
+.watch-sync-search input {
 	width: 100%;
 	margin-bottom: 0.3em;
 }
 
-.stremio-sync-preview .stremio-sync-bulk {
+.watch-sync-preview .watch-sync-bulk {
 	padding-top: 0;
 	border-top: none;
 }
 
-.stremio-sync-preview .stremio-sync-bulk .setting-item-description {
+.watch-sync-preview .watch-sync-bulk .setting-item-description {
 	font-size: var(--font-ui-smaller);
 }
 
-.stremio-sync-groups {
+.watch-sync-groups {
 	flex: 1 1 auto;
 	min-height: 8em;
 	overflow-y: auto;
@@ -177,43 +202,43 @@
 	padding: 0.2em 0;
 }
 
-.stremio-sync-group {
+.watch-sync-group {
 	padding: 0.45em 0.75em;
 }
 
-.stremio-sync-group + .stremio-sync-group {
+.watch-sync-group + .watch-sync-group {
 	border-top: 1px solid var(--background-modifier-border);
 }
 
-.stremio-sync-group.is-hidden,
-.stremio-sync-empty.is-hidden {
+.watch-sync-group.is-hidden,
+.watch-sync-empty.is-hidden {
 	display: none;
 }
 
-.stremio-sync-group-header {
+.watch-sync-group-header {
 	display: flex;
 	align-items: flex-start;
 	gap: 0.55em;
 	cursor: pointer;
 }
 
-.stremio-sync-group-text {
+.watch-sync-group-text {
 	flex: 1 1 auto;
 	min-width: 0;
 }
 
-.stremio-sync-group-title {
+.watch-sync-group-title {
 	font-weight: var(--font-semibold);
 	line-height: 1.3;
 }
 
-.stremio-sync-group-path {
+.watch-sync-group-path {
 	color: var(--text-faint);
 	font-size: var(--font-ui-smaller);
 	overflow-wrap: anywhere;
 }
 
-.stremio-sync-group-badge {
+.watch-sync-group-badge {
 	flex: none;
 	align-self: center;
 	padding: 0.1em 0.5em;
@@ -224,14 +249,14 @@
 	white-space: nowrap;
 }
 
-.stremio-sync-operations {
+.watch-sync-operations {
 	list-style: none;
 	margin: 0.3em 0 0;
 	padding-left: 1.75em;
 	font-size: var(--font-ui-smaller);
 }
 
-.stremio-sync-operations label {
+.watch-sync-operations label {
 	display: flex;
 	align-items: baseline;
 	gap: 0.5em;
@@ -239,27 +264,27 @@
 	cursor: pointer;
 }
 
-.stremio-sync-op-text {
+.watch-sync-op-text {
 	overflow-wrap: anywhere;
 }
 
-.stremio-sync-details {
+.watch-sync-details {
 	flex: none;
-	margin-top: var(--stremio-sync-gap);
+	margin-top: var(--watch-sync-gap);
 	margin-bottom: 0;
 }
 
-.stremio-sync-preview .stremio-sync-footer {
+.watch-sync-preview .watch-sync-footer {
 	flex: none;
 	position: sticky;
 	bottom: 0;
-	margin-top: var(--stremio-sync-gap);
+	margin-top: var(--watch-sync-gap);
 	padding-bottom: 0;
 	border-top: 1px solid var(--background-modifier-border);
 	background: var(--background-primary);
 }
 
-.stremio-sync-kind {
+.watch-sync-kind {
 	flex: none;
 	color: var(--text-accent);
 	font-size: var(--font-ui-smaller);
@@ -267,32 +292,32 @@
 }
 
 @media (max-width: 600px) {
-	.stremio-sync-preview {
+	.watch-sync-preview {
 		width: calc(100vw - 1rem);
 		max-width: none;
 		margin: 0.5rem;
 		padding-bottom: env(safe-area-inset-bottom, 0px);
 	}
 
-	.stremio-sync-preview .modal-content {
+	.watch-sync-preview .modal-content {
 		max-height: calc(
 			100dvh - 1rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)
 		);
 		min-height: 0;
 	}
 
-	.stremio-sync-preview .stremio-sync-groups {
+	.watch-sync-preview .watch-sync-groups {
 		min-height: 6em;
 	}
 
-	.stremio-sync-preview button,
-	.stremio-sync-preview input[type='search'],
-	.stremio-sync-preview .stremio-sync-chip,
-	.stremio-sync-preview .stremio-sync-group-header {
+	.watch-sync-preview button,
+	.watch-sync-preview input[type='search'],
+	.watch-sync-preview .watch-sync-chip,
+	.watch-sync-preview .watch-sync-group-header {
 		min-height: 44px;
 	}
 
-	.stremio-sync-preview .stremio-sync-footer {
-		padding-bottom: calc(var(--stremio-sync-gap) + env(safe-area-inset-bottom, 0px));
+	.watch-sync-preview .watch-sync-footer {
+		padding-bottom: calc(var(--watch-sync-gap) + env(safe-area-inset-bottom, 0px));
 	}
 }

@@ -5,23 +5,26 @@ import {
 	planSize,
 	selectionOptionsOf,
 	type PluginData,
+	type RecentEvent,
 	type SyncPlan,
 } from './model/types';
 import { sanitizePluginData } from './model/plugin-data';
-import { MissingSecretError, readSecret, requireSecret } from './secrets';
-import { StremioSyncSettingTab } from './settings';
-import { fetchLibrary, StremioApiError } from './stremio/api';
+import { MissingSecretError, readSecret } from './secrets';
+import { WatchSyncSettingTab } from './settings';
+import { StremioApiError } from './stremio/api';
 import { SyncService } from './sync/service';
 import { TemplateError } from './vault/template';
 import { ObsidianVaultGateway } from './vault/writer';
 import { PreviewModal } from './ui/preview-modal';
-import { ReportModal } from './ui/report-modal';
 import { summarize, SummaryModal } from './ui/summary-modal';
 import { t } from './i18n';
+import { discoverNuvioBackend, ensureNuvioSession, fetchNuvioProfiles, type NuvioProfile, type NuvioSession } from './nuvio/api';
+
+const NUVIO_SESSION_SECRET_ID = 'stremio-sync-nuvio-session';
 
 const MIN_AUTO_SYNC_MINUTES = 15;
 
-export default class StremioSyncPlugin extends Plugin {
+export default class WatchSyncPlugin extends Plugin {
 	data: PluginData = sanitizePluginData(null);
 	private cache!: MetadataCache;
 	private gateway!: ObsidianVaultGateway;
@@ -31,6 +34,7 @@ export default class StremioSyncPlugin extends Plugin {
 	private readyPromise: Promise<void> = Promise.resolve();
 	/** Guards the whole fetch → plan → write cycle, including the modal detour. */
 	private busy = false;
+	nuvioProfiles: NuvioProfile[] = [];
 
 	override async onload(): Promise<void> {
 		await this.loadPluginData();
@@ -55,7 +59,7 @@ export default class StremioSyncPlugin extends Plugin {
 			});
 		});
 
-		this.addSettingTab(new StremioSyncSettingTab(this));
+		this.addSettingTab(new WatchSyncSettingTab(this));
 
 		this.addRibbonIcon('clapperboard', t('app.ribbon'), () => {
 			void this.sync();
@@ -92,6 +96,34 @@ export default class StremioSyncPlugin extends Plugin {
 	/** Persists settings and caches. Secret values never reach this file. */
 	async persist(): Promise<void> {
 		await this.saveData(this.data);
+	}
+
+	async saveNuvioSession(session: NuvioSession): Promise<void> {
+		this.app.secretStorage.setSecret(NUVIO_SESSION_SECRET_ID, JSON.stringify(session));
+		this.data.settings.sessionSecretIds.nuvio = NUVIO_SESSION_SECRET_ID;
+		this.recordEvent('connection', 'success', t('event.connected.nuvio'));
+		await this.persist();
+		await this.refreshNuvioProfiles();
+	}
+
+	async refreshNuvioProfiles(): Promise<void> {
+		const secretId = this.data.settings.sessionSecretIds.nuvio;
+		if (!secretId) { this.nuvioProfiles = []; return; }
+		const raw = readSecret(this.app, secretId);
+		if (!raw) { this.nuvioProfiles = []; return; }
+		try {
+			const session = JSON.parse(raw) as Partial<NuvioSession>;
+			if (typeof session.accessToken !== 'string' || typeof session.refreshToken !== 'string' || typeof session.expiresAt !== 'number') throw new Error(t('nuvio.session.invalid'));
+			const backend = await discoverNuvioBackend(this.data.settings.nuvioBackendUrl);
+			const current = await ensureNuvioSession(backend, session as NuvioSession);
+			if (current.accessToken !== session.accessToken || current.refreshToken !== session.refreshToken) {
+				this.app.secretStorage.setSecret(secretId, JSON.stringify(current));
+			}
+			this.nuvioProfiles = await fetchNuvioProfiles(backend, current.accessToken);
+		} catch (error) {
+			this.nuvioProfiles = [];
+			throw error;
+		}
 	}
 
 	restartAutoSync(): void {
@@ -139,6 +171,8 @@ export default class StremioSyncPlugin extends Plugin {
 
 		const problem = this.configurationProblem();
 		if (problem) {
+			this.recordEvent('sync', 'warning', 'Sync could not start — configuration needs attention.');
+			await this.persist();
 			if (!options.silent) {
 				new Notice(t('notice.config', { problem }), 10_000);
 			}
@@ -181,7 +215,11 @@ export default class StremioSyncPlugin extends Plugin {
 			}
 
 			if (planSize(plan) === 0) {
-				if (!options.silent) new Notice(t('notice.nothing'));
+				if (!options.silent) {
+					this.recordEvent('sync', 'success', t('event.sync.none'));
+					await this.persist();
+					new Notice(t('notice.nothing'));
+				}
 				return;
 			}
 
@@ -207,6 +245,16 @@ export default class StremioSyncPlugin extends Plugin {
 				notice?.setMessage(t('notice.writingProgress', { done, total }));
 				},
 			});
+			this.recordEvent(
+				'sync',
+				result.errors.length > 0 ? 'warning' : 'success',
+				t('event.sync.done', {
+					created: result.created,
+					adopted: result.adopted,
+					updated: result.updated,
+					errors: result.errors.length,
+				}),
+			);
 			await this.persist();
 			notice?.hide();
 
@@ -216,7 +264,7 @@ export default class StremioSyncPlugin extends Plugin {
 				}
 				return;
 			}
-			new ReportModal(this.app, result).open();
+			new Notice(t('notice.done', { created: result.created, updated: result.updated }), 5_000);
 		} catch (error) {
 			notice?.hide();
 			this.reportError(error);
@@ -235,8 +283,8 @@ export default class StremioSyncPlugin extends Plugin {
 	private async showLibrarySummary(): Promise<void> {
 		await this.waitUntilReady();
 		try {
-			const authKey = requireSecret(this.app, this.data.settings.authKeySecretId, 'Stremio authKey');
-			const items = await fetchLibrary(authKey);
+			const service = new SyncService(this.app, this.data, this.gateway, this.cache);
+			const { items } = await service.fetchLibraryItems();
 			new SummaryModal(this.app, summarize(items, selectionOptionsOf(this.data.settings))).open();
 		} catch (error) {
 			this.reportError(error);
@@ -254,18 +302,29 @@ export default class StremioSyncPlugin extends Plugin {
 	}
 
 	reportError(error: unknown): void {
+		this.recordEvent('sync', 'error', t('event.sync.failed'));
+		void this.persist().catch(() => undefined);
 		if (
 			error instanceof MissingSecretError ||
 			error instanceof StremioApiError ||
 			error instanceof TemplateError
 		) {
-			new Notice(`Stremio Sync: ${error.message}`, 10_000);
+			new Notice(t('notice.failed', { message: error.message }), 10_000);
 			return;
 		}
-		console.error('[stremio-sync]', error);
+		console.error('[watch-sync]', error);
 		new Notice(
 			t('notice.unexpected', { error: error instanceof Error ? error.message : String(error) }),
 			10_000,
 		);
+	}
+
+	recordConnectionEvent(message: string): void {
+		this.recordEvent('connection', 'success', message);
+		void this.persist().catch(() => undefined);
+	}
+
+	private recordEvent(kind: RecentEvent['kind'], status: RecentEvent['status'], message: string): void {
+		this.data.recentEvents = [{ at: new Date().toISOString(), kind, status, message }, ...this.data.recentEvents].slice(0, 20);
 	}
 }

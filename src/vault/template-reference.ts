@@ -5,12 +5,16 @@
  * from what actually resolves.
  */
 
+import { MANAGED_END, MANAGED_START } from './managed-block';
+
 export interface TemplateField {
 	/** What you type, without the braces. */
 	name: string;
 	/** The value it resolves to. */
 	description: string;
 	example?: string;
+	/** Plain-language data shape shown next to the token. */
+	kind?: 'text' | 'number' | 'date' | 'link' | 'boolean' | 'list' | 'checkboxes';
 }
 
 export interface FieldGroup {
@@ -18,132 +22,39 @@ export interface FieldGroup {
 	fields: TemplateField[];
 }
 
-export const TEMPLATE_FIELD_GROUPS: FieldGroup[] = [
-	{
-		title: 'Identity',
-		fields: [
-			{ name: 'title', description: 'Display title, from TMDB when available.', example: 'Severance' },
-			{
-				name: 'originalTitle',
-				description: 'Title in the original language. TMDB only, often the same as the title.',
-				example: 'Severance',
-			},
-			{ name: 'type', description: 'Either movie or series.', example: 'series' },
-			{ name: 'id', description: 'Stremio library id.', example: 'tt11280740' },
-			{ name: 'imdbId', description: 'IMDb id, when one is known.', example: 'tt11280740' },
-			{ name: 'tmdbId', description: 'Numeric TMDB id, when one is known.', example: '95396' },
-		],
-	},
-	{
-		title: 'Dates',
-		fields: [
-			{
-				name: 'year',
-				description: 'Release year for a movie, first air year for a series.',
-				example: '2022',
-			},
-			{ name: 'yearStart', description: 'First year. Same as the year for a movie.', example: '2022' },
-			{ name: 'yearEnd', description: 'Last year so far. Same as the year for a movie.', example: '2025' },
-			{
-				name: 'yearRange',
-				description: 'yearStart-yearEnd, collapsed to one year when they match.',
-				example: '2022-2025',
-			},
-			{
-				name: 'releaseDate',
-				description: 'Premiere date. First air date for a series.',
-				example: '2022-02-18',
-			},
-		],
-	},
-	{
-		title: 'Text and images',
-		fields: [
-			{ name: 'description', description: 'Synopsis, in the configured language.' },
-			{
-				name: 'cover',
-				description: 'Poster URL, 2:3. Also written to the poster property.',
-				example: 'https://image.tmdb.org/t/p/original//abc.jpg',
-			},
-			{ name: 'backdrop', description: 'Wide still, 16:9. Not written to any property.' },
-		],
-	},
-	{
-		title: 'Facts',
-		fields: [
-			{
-				name: 'durationMinutes',
-				description: 'Runtime in minutes; for a series the total across all episodes.',
-				example: '927',
-			},
-			{ name: 'genresText', description: 'Genres, comma separated.', example: 'Drama, Thriller' },
-			{ name: 'castText', description: 'Leading cast, comma separated.', example: 'Adam Scott, Britt Lower' },
-			{
-				name: 'genres',
-				description: 'The same genres as a list, for {{#each}} or the join helper.',
-				example: 'Drama,Thriller',
-			},
-			{ name: 'cast', description: 'Up to five leading actors, as a list.' },
-			{ name: 'director', description: 'Director, when TMDB or Cinemeta reports one.' },
-		],
-	},
-	{
-		title: 'Links',
-		fields: [
-			{
-				name: 'stremioUrl',
-				description: 'The title on web.stremio.com. Also written to the link property.',
-			},
-			{ name: 'stremioAppUrl', description: 'The title, opened in the Stremio app.' },
-			{
-				name: 'stremioEpisodeUrl',
-				description: 'The episode you are on, opened in the app. Series only; empty for a movie.',
-			},
-			{ name: 'imdbUrl', description: 'IMDb page, when the IMDb id is known.' },
-		],
-	},
-	{
-		title: 'Watching',
-		fields: [
-			{
-				name: 'lastWatched',
-				description: 'Date Stremio last played it, whether or not it was finished.',
-				example: '2025-03-21',
-			},
-			{
-				name: 'watchStatus',
-				description: 'One of watched, in-progress, sampled, unwatched.',
-				example: 'watched',
-			},
-			{ name: 'finished', description: 'true or false. Meant for {{#if finished}}.', example: 'true' },
-			{ name: 'progressPercent', description: 'Whole percent, 0–100.', example: '53' },
-		],
-	},
-	{
-		title: 'Episodes',
-		fields: [
-			{
-				name: 'episodeCount',
-				description: 'Known episodes. Zero for a movie.',
-				example: '15',
-			},
-			{ name: 'watchedCount', description: 'How many of them are watched.', example: '8' },
-			{
-				name: 'lastEpisodeLabel',
-				description: 'The episode Stremio has you on. Empty for a movie.',
-				example: 'S02E08',
-			},
-			{
-				name: 'lastEpisode.title',
-				description: 'Its title. Also .season, .number, .videoId and .airDate.',
-			},
-			{
-				name: 'seasons',
-				description:
-					'Printed on its own it renders the full season sections, exactly like the seasons partial. Use it with {{#each}} to lay the episodes out yourself.',
-			},
-		],
-	},
+/** The only template keys shown in settings. They are provider-neutral and stable. */
+export const TEMPLATE_TOKEN_GROUPS: FieldGroup[] = [
+	{ title: 'Media', fields: [
+		{ name: 'title', description: 'Display title.', example: 'Severance', kind: 'text' },
+		{ name: 'original', description: 'Original-language title.', example: 'Severance', kind: 'text' },
+		{ name: 'source', description: 'Item id from the selected service.', example: 'tt11280740', kind: 'text' },
+		{ name: 'provider', description: 'Selected service.', example: 'nuvio', kind: 'text' },
+		{ name: 'kind', description: 'movie or series.', example: 'series', kind: 'text' },
+		{ name: 'year', description: 'Release or first-air year.', example: '2022', kind: 'number' },
+		{ name: 'years', description: 'Start–end year range.', example: '2022-2025', kind: 'text' },
+		{ name: 'released', description: 'Premiere date.', example: '2022-02-18', kind: 'date' },
+		{ name: 'description', description: 'Synopsis.', example: 'A workplace mystery.', kind: 'text' },
+		{ name: 'duration', description: 'Runtime in minutes.', example: '927', kind: 'number' },
+		{ name: 'genres', description: 'Genre names.', example: 'Drama, Thriller', kind: 'list' },
+		{ name: 'cast', description: 'Leading cast.', example: 'Adam Scott, Britt Lower', kind: 'list' },
+		{ name: 'director', description: 'Director when known.', example: 'Ben Stiller', kind: 'text' },
+		{ name: 'cover', description: 'Poster image URL.', kind: 'link' },
+		{ name: 'backdrop', description: 'Wide background image URL.', kind: 'link' },
+	] },
+	{ title: 'Links and watching', fields: [
+		{ name: 'link', description: 'Open this title in its source app.', kind: 'link' },
+		{ name: 'resume', description: 'Open the current episode when available.', kind: 'link' },
+		{ name: 'imdb', description: 'IMDb page when known.', kind: 'link' },
+		{ name: 'status', description: 'watched, in-progress, sampled, or unwatched.', example: 'watched', kind: 'text' },
+		{ name: 'progress', description: 'Whole progress percentage.', example: '53', kind: 'number' },
+		{ name: 'finished', description: 'Whether the title is finished.', example: 'true', kind: 'boolean' },
+		{ name: 'watched', description: 'Latest watch date.', example: '2026-08-25', kind: 'date' },
+	] },
+	{ title: 'Episodes', fields: [
+		{ name: 'episodes', description: 'Known episode count; zero for movies.', example: '15', kind: 'number' },
+		{ name: 'current', description: 'Current episode label.', example: 'S02E08', kind: 'text' },
+		{ name: 'seasons', description: 'Season checklist sections.', kind: 'checkboxes' },
+	] },
 ];
 
 export interface TemplateSnippet {
@@ -161,8 +72,8 @@ export const TEMPLATE_SNIPPETS: TemplateSnippet[] = [
 		description: 'Joins any list with a separator of your choice.',
 	},
 	{
-		syntax: '{{pad lastEpisode.number}}',
-		description: 'Pads a number to two digits: 8 becomes 08. Empty stays empty.',
+		syntax: '{{pad episodes}}',
+		description: 'Pads any number to two digits: 8 becomes 08. Empty stays empty.',
 	},
 	{
 		syntax: '{{#if description}}…{{/if}}',
@@ -181,12 +92,12 @@ export const TEMPLATE_SNIPPETS: TemplateSnippet[] = [
 		description: "Obsidian's own placeholder, resolved to today's date.",
 	},
 	{
-		syntax: '%% stremio %% … %% /stremio %%',
+		syntax: `${MANAGED_START} … ${MANAGED_END}`,
 		description: 'Managed block. Only its contents are refreshed on later syncs.',
 	},
 ];
 
 /** Every documented field name, for the drift test. */
 export function documentedFieldNames(): string[] {
-	return TEMPLATE_FIELD_GROUPS.flatMap((group) => group.fields.map((field) => field.name));
+	return TEMPLATE_TOKEN_GROUPS.flatMap((group) => group.fields.map((field) => field.name));
 }

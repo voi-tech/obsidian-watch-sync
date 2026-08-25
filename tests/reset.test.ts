@@ -1,23 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_SETTINGS, type StremioSyncSettings } from '../src/model/types';
+import { DEFAULT_SETTINGS, type WatchSyncSettings } from '../src/model/types';
+import { restoreDefaultSettings as restoreDefaults } from '../src/model/plugin-data';
 
-/**
- * Mirrors what the "Restore defaults" button does. Kept as a function here so
- * the rule it encodes — everything resets except what connects you to a service
- * — is stated once and checked.
- */
-function restoreDefaults(current: StremioSyncSettings): StremioSyncSettings {
-	return {
-		...structuredClone(DEFAULT_SETTINGS),
-		authKeySecretId: current.authKeySecretId,
-		tmdbKeySecretId: current.tmdbKeySecretId,
-	};
-}
-
-const customised: StremioSyncSettings = {
+const customised: WatchSyncSettings = {
 	...DEFAULT_SETTINGS,
 	authKeySecretId: 'stremio-sync-auth-key',
 	tmdbKeySecretId: 'my-tmdb',
+	sessionSecretIds: { nuvio: 'watch-sync-nuvio-session' },
+	nuvioProfileId: 'profile-1',
+	nuvioProfileName: 'Household',
 	movieFolder: 'Movies',
 	seriesFolder: 'Series',
 	movieTemplate: 'Templates/Movie.md',
@@ -37,7 +28,7 @@ describe('restore defaults', () => {
 		expect(restored.watchedThresholdPercent).toBe(70);
 		expect(restored.sampledThresholdMinutes).toBe(5);
 		expect(restored.autoSyncEnabled).toBe(false);
-		expect(restored.doneTag).toBe('done');
+		expect(restored.doneTag).toBe('');
 	});
 
 	it('puts the property names back too', () => {
@@ -45,16 +36,29 @@ describe('restore defaults', () => {
 		expect(restored.properties).toEqual(DEFAULT_SETTINGS.properties);
 	});
 
-	it('leaves you connected', () => {
+	it('leaves you connected to every service', () => {
 		const restored = restoreDefaults(customised);
 		expect(restored.authKeySecretId).toBe('stremio-sync-auth-key');
 		expect(restored.tmdbKeySecretId).toBe('my-tmdb');
+		expect(restored.sessionSecretIds).toEqual({ nuvio: 'watch-sync-nuvio-session' });
+	});
+
+	it('still clears the profile selection, which is an ordinary setting', () => {
+		const restored = restoreDefaults(customised);
+		expect(restored.nuvioProfileId).toBe('');
+		expect(restored.nuvioProfileName).toBe('');
+	});
+
+	it('does not share the session ids with the settings it restored from', () => {
+		const restored = restoreDefaults(customised);
+		restored.sessionSecretIds.nuvio = 'mutated';
+		expect(customised.sessionSecretIds.nuvio).toBe('watch-sync-nuvio-session');
 	});
 
 	it('does not share objects with the defaults', () => {
 		const restored = restoreDefaults(customised);
 		restored.properties.cover = 'mutated';
-		expect(DEFAULT_SETTINGS.properties.cover).toBe('cover');
+	expect(DEFAULT_SETTINGS.properties.cover).toBeUndefined();
 	});
 
 	it('covers every key, so a new setting cannot be forgotten', () => {

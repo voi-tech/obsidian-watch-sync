@@ -24,12 +24,12 @@ const media: NormalizedMedia = {
 	seasons: [],
 };
 
-const options = (source: string): EngineOptions => ({
+const options = (link: string): EngineOptions => ({
 	settings: {
 		...DEFAULT_SETTINGS,
 		movieFolder: MOVIES,
 		seriesFolder: 'Series',
-		properties: { ...DEFAULT_SETTINGS.properties, source },
+		properties: { ...DEFAULT_SETTINGS.properties, link, duration: 'duration' },
 	},
 	index: {},
 	templates: { movie: '', series: '' },

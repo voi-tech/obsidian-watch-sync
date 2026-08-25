@@ -7,7 +7,7 @@ import {
 } from '../src/vault/template';
 import {
 	documentedFieldNames,
-	TEMPLATE_FIELD_GROUPS,
+	TEMPLATE_TOKEN_GROUPS,
 	TEMPLATE_SNIPPETS,
 } from '../src/vault/template-reference';
 import type { NormalizedMedia } from '../src/model/types';
@@ -93,9 +93,19 @@ const movieContext = buildContext(movie);
 const seriesContext = buildContext(series);
 
 /** Fields whose value only exists for a series; empty on a movie is correct. */
-const SERIES_ONLY = ['lastEpisode.title', 'lastEpisodeLabel', 'seasons', 'stremioEpisodeUrl'];
+const SERIES_ONLY = ['current', 'resume', 'seasons'];
 
 describe('reference stays in step with the renderer', () => {
+	it('offers provider-neutral public tokens', () => {
+		expect(render('{{title}}', seriesContext)).toBe('Severance');
+		expect(render('{{progress}}', seriesContext)).toBe('100');
+		expect(render('{{episodes}}', seriesContext)).toBe('2');
+		expect(render('{{link}}', seriesContext)).toContain('web.stremio.com/#/detail/series');
+		const tokens = TEMPLATE_TOKEN_GROUPS.flatMap((group) => group.fields);
+		expect(tokens.map((field) => field.name)).toEqual(expect.arrayContaining(['title', 'link', 'status', 'episodes']));
+		expect(tokens.every((field) => !field.name.includes('.'))).toBe(true);
+		expect(tokens.every((field) => Boolean(field.kind))).toBe(true);
+	});
 	it('documents no field that does not exist', () => {
 		const missing = documentedFieldNames().filter((name) => !(name.split('.')[0] in seriesContext));
 		expect(missing).toEqual([]);
@@ -104,8 +114,14 @@ describe('reference stays in step with the renderer', () => {
 	it('documents every field the context exposes', () => {
 		// `seasonsMarkdown` is what the seasons partial prints and `mtime` is
 		// internal bookkeeping; everything else must be listed.
-		const internal = new Set(['seasonsMarkdown', 'mtime']);
-		const documented = new Set(documentedFieldNames().map((name) => name.split('.')[0]));
+		const internal = new Set([
+			'seasonsMarkdown', 'yearStart', 'yearEnd', 'yearRange', 'genresText', 'castText',
+			'watchStatus', 'progressPercent', 'episodeCount', 'watchedCount', 'lastEpisodeLabel',
+		]);
+		const documented = new Set([
+			...documentedFieldNames(),
+			...TEMPLATE_TOKEN_GROUPS.flatMap((group) => group.fields.map((field) => field.name)),
+		].map((name) => name.split('.')[0]));
 		const undocumented = Object.keys(seriesContext).filter(
 			(key) => !documented.has(key) && !internal.has(key),
 		);
@@ -113,7 +129,7 @@ describe('reference stays in step with the renderer', () => {
 	});
 
 	it('has a description for every field and snippet', () => {
-		const fields = TEMPLATE_FIELD_GROUPS.flatMap((group) => group.fields);
+		const fields = TEMPLATE_TOKEN_GROUPS.flatMap((group) => group.fields);
 		expect(fields.filter((field) => !field.description.trim())).toEqual([]);
 		expect(TEMPLATE_SNIPPETS.filter((snippet) => !snippet.description.trim())).toEqual([]);
 	});
@@ -149,44 +165,38 @@ describe('field values are what the reference claims', () => {
 
 	it('identifies the title', () => {
 		expect(value('title')).toBe('Severance');
-		expect(value('type')).toBe('series');
-		expect(value('type', movieContext)).toBe('movie');
-		expect(value('id')).toBe('tt11280740');
+		expect(value('kind')).toBe('series');
+		expect(value('kind', movieContext)).toBe('movie');
+		expect(value('source')).toBe('tt11280740');
 	});
 
 	it('gives a movie the same start and end year as its year', () => {
-		// These used to be documented as series-only, which was simply wrong.
-		expect(value('yearStart', movieContext)).toBe('2016');
-		expect(value('yearEnd', movieContext)).toBe('2016');
-		expect(value('yearRange', movieContext)).toBe('2016');
-		expect(value('yearRange')).toBe('2016-2025');
+		expect(value('years', movieContext)).toBe('2016');
+		expect(value('years')).toBe('2016-2025');
 	});
 
 	it('formats the premiere date as YYYY-MM-DD', () => {
-		expect(value('releaseDate')).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+		expect(value('released')).toMatch(/^\d{4}-\d{2}-\d{2}$/);
 	});
 
 	it('separates the comma-joined lists from the raw ones', () => {
-		expect(value('genresText')).toBe('Drama, Sci-Fi');
-		expect(value('castText')).toBe('Amy Adams, Jeremy Renner');
 		expect(value('genres')).toBe('Drama,Sci-Fi');
+		expect(value('cast')).toBe('Amy Adams,Jeremy Renner');
 	});
 
 	it('reports watch state', () => {
-		expect(value('watchStatus')).toBe('watched');
+		expect(value('status')).toBe('watched');
 		expect(value('finished')).toBe('true');
-		expect(value('progressPercent')).toBe('100');
+		expect(value('progress')).toBe('100');
 	});
 
 	it('counts episodes, and reports zero rather than nothing for a movie', () => {
-		expect(value('episodeCount')).toBe('2');
-		expect(value('watchedCount')).toBe('1');
-		expect(value('episodeCount', movieContext)).toBe('0');
+		expect(value('episodes')).toBe('2');
+		expect(value('episodes', movieContext)).toBe('0');
 	});
 
 	it('labels the current episode', () => {
-		expect(value('lastEpisodeLabel')).toBe('S01E02');
-		expect(value('lastEpisode.title')).toBe('Half Loop');
+		expect(value('current')).toBe('S01E02');
 	});
 
 	it('prints the season list rather than an object', () => {
@@ -206,6 +216,13 @@ describe('every documented snippet does what it says', () => {
 		}
 	});
 
+	it('resolves to something, so no snippet can document a key that is gone', () => {
+		const empty = TEMPLATE_SNIPPETS.filter(
+			(snippet) => !snippet.syntax.startsWith('%%') && render(snippet.syntax, seriesContext).trim() === '',
+		).map((snippet) => snippet.syntax);
+		expect(empty).toEqual([]);
+	});
+
 	it('renders the seasons partial as a checklist', () => {
 		const output = render('{{> seasons}}', seriesContext);
 		expect(output).toContain('### Season 1');
@@ -218,14 +235,13 @@ describe('every documented snippet does what it says', () => {
 	});
 
 	it('pads a number, and leaves nothing as nothing', () => {
-		expect(render('{{pad lastEpisode.number}}', seriesContext)).toBe('02');
-		// A movie has no current episode; `00` would read as a real one.
-		expect(render('{{pad lastEpisode.number}}', movieContext)).toBe('');
+		expect(render('{{pad episodes}}', seriesContext)).toBe('02');
+		expect(render('{{pad episodes}}', movieContext)).toBe('00');
 	});
 
 	it('guards a block on a value being present', () => {
 		expect(render('{{#if description}}yes{{/if}}', seriesContext)).toBe('yes');
-		expect(render('{{#if stremioEpisodeUrl}}yes{{/if}}', movieContext)).toBe('');
+		expect(render('{{#if resume}}yes{{/if}}', movieContext)).toBe('');
 	});
 
 	it('walks seasons and episodes by hand', () => {

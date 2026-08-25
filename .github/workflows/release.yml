@@ -1,4 +1,4 @@
-name: Beta release
+name: Release
 
 on:
   push:
@@ -22,7 +22,13 @@ jobs:
       - name: Verify tag
         env:
           TAG: ${{ github.ref_name }}
-        run: node -e 'const manifest = require("./manifest.json"); if (process.env.TAG !== manifest.version) throw new Error(`Tag ${process.env.TAG} does not match manifest ${manifest.version}`)'
+        # A stable tag equals the manifest version; a prerelease tag adds a suffix.
+        run: |
+          VERSION=$(node -p 'JSON.parse(require("node:fs").readFileSync("manifest.json", "utf8")).version')
+          if [ "$TAG" != "$VERSION" ] && [ "${TAG#"$VERSION"-}" = "$TAG" ]; then
+            echo "Tag $TAG does not match manifest version $VERSION." >&2
+            exit 1
+          fi
       - run: npm ci
       - run: npm run check
       - name: Attest release assets
@@ -32,7 +38,14 @@ jobs:
             main.js
             manifest.json
             styles.css
-      - name: Create GitHub prerelease
+      - name: Create GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "${{ github.ref_name }}" --prerelease --title "${{ github.ref_name }}" --generate-notes main.js manifest.json styles.css
+          TAG: ${{ github.ref_name }}
+        # CalVer without a suffix ships as a stable release; anything else is a prerelease.
+        run: |
+          if echo "$TAG" | grep -Eq '^[0-9]{2}\.[0-9]{1,2}\.[0-9]+$'; then
+            gh release create "$TAG" --title "$TAG" --generate-notes main.js manifest.json styles.css
+          else
+            gh release create "$TAG" --prerelease --title "$TAG" --generate-notes main.js manifest.json styles.css
+          fi

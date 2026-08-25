@@ -35,7 +35,7 @@ export class ConnectModal extends Modal {
 		this.closed = false;
 		document.addEventListener('visibilitychange', this.handleVisibilityChange);
 		this.setTitle(t('connect.title'));
-		this.modalEl.addClass('stremio-sync-connect');
+		this.modalEl.addClass('watch-sync-connect');
 		void this.begin();
 	}
 
@@ -53,7 +53,7 @@ export class ConnectModal extends Modal {
 		this.statusEl = null;
 		const { contentEl } = this;
 		contentEl.empty();
-		contentEl.createEl('p', { text: t('connect.generating'), cls: 'stremio-sync-note' });
+		contentEl.createEl('p', { text: t('connect.generating'), cls: 'watch-sync-note' });
 
 		try {
 			this.link = await createLinkCode();
@@ -61,7 +61,7 @@ export class ConnectModal extends Modal {
 			contentEl.empty();
 			contentEl.createEl('p', {
 				text: error instanceof Error ? error.message : String(error),
-				cls: 'stremio-sync-connect-error',
+				cls: 'watch-sync-connect-error',
 			});
 			new Setting(contentEl).addButton((button) =>
 				button
@@ -77,16 +77,16 @@ export class ConnectModal extends Modal {
 			text: t('connect.approve'),
 		});
 
-		contentEl.createDiv({ cls: 'stremio-sync-code', text: this.link.code });
+		contentEl.createDiv({ cls: 'watch-sync-code', text: this.link.code });
 
-		const steps = contentEl.createEl('ol', { cls: 'stremio-sync-steps' });
+		const steps = contentEl.createEl('ol', { cls: 'watch-sync-steps' });
 		steps.createEl('li', { text: t('connect.step.open') });
 		steps.createEl('li', { text: t('connect.step.check') });
 		steps.createEl('li', { text: t('connect.step.return') });
 
 		this.statusEl = contentEl.createEl('p', {
 			text: t('connect.waiting'),
-			cls: 'stremio-sync-note',
+			cls: 'watch-sync-note',
 		});
 
 		new Setting(contentEl)
@@ -129,7 +129,7 @@ export class ConnectModal extends Modal {
 		if (Date.now() - this.startedAt > TIMEOUT_MS) {
 			this.stopPolling();
 			this.statusEl?.setText(t('connect.expired'));
-			this.statusEl?.addClass('stremio-sync-connect-error');
+			this.statusEl?.addClass('watch-sync-connect-error');
 			return;
 		}
 
@@ -156,7 +156,7 @@ export class ConnectModal extends Modal {
 
 	private showPollingError(error: unknown): void {
 		this.statusEl?.setText(error instanceof Error ? error.message : String(error));
-		this.statusEl?.addClass('stremio-sync-connect-error');
+		this.statusEl?.addClass('watch-sync-connect-error');
 		new Setting(this.contentEl).addButton((button) =>
 			button
 					.setButtonText(t('connect.retry'))

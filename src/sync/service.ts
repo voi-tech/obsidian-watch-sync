@@ -3,11 +3,14 @@ import { fetchCinemetaMeta } from '../meta/cinemeta';
 import { MetadataCache, ttlDaysFor } from '../meta/cache';
 import { normalize, type MetadataSources, type NormalizeWarning } from '../meta/normalize';
 import { TmdbClient } from '../meta/tmdb';
+import type { LibraryItem } from '../model/schema';
 import type { NormalizedMedia, PluginData, SyncPlan, SyncResult } from '../model/types';
 import { selectionOptionsOf } from '../model/types';
 import { readSecret, requireSecret } from '../secrets';
 import { fetchLibrary, fetchLibraryMeta, selectRelevant } from '../stremio/api';
-import { parseWebUrl } from '../stremio/links';
+import { nuvioSourceUrl, parseWebUrl } from '../stremio/links';
+import { discoverNuvioBackend, ensureNuvioSession, fetchNuvioProfiles, fetchNuvioSnapshot, NuvioApiError, resolveNuvioProfileIndex, type NuvioSession } from '../nuvio/api';
+import { applyNuvioEpisodeStates, nuvioLibraryItems, type NuvioEpisodeState } from '../nuvio/normalize';
 import { mapWithLimit } from '../util/limit';
 import type { VaultGateway } from '../vault/gateway';
 import { buildPlan } from './engine';
@@ -15,6 +18,14 @@ import type { ApplicableOperation } from './operations';
 import { executePlan } from '../vault/writer';
 import { readTemplateSource } from '../vault/template-source';
 import { t } from '../i18n';
+
+/** Applies the same watch-status policy to every provider before planning. */
+export function filterImportedItems(
+	items: LibraryItem[],
+	settings: PluginData['settings'],
+): LibraryItem[] {
+	return selectRelevant(items, selectionOptionsOf(settings));
+}
 
 /** Titles normalized at once. Each one is several HTTP round trips. */
 const NORMALIZE_CONCURRENCY = 5;
@@ -51,6 +62,7 @@ export class SyncService {
 	 * full fetch and a metadata pass.
 	 */
 	async hasChangesSinceLastSync(): Promise<boolean> {
+		if (this.data.settings.provider === 'nuvio') return true;
 		const watermark = this.data.lastSyncMtime;
 		if (!watermark) return true;
 		const authKey = requireSecret(this.app, this.data.settings.authKeySecretId, 'Stremio authKey');
@@ -58,16 +70,34 @@ export class SyncService {
 		return meta.some((entry) => entry.mtime > watermark);
 	}
 
-	/** Fetches, normalizes and plans. Makes no changes to the vault. */
-	async prepare(onProgress?: (done: number, total: number) => void): Promise<PreparedSync> {
+	/**
+	 * Library entries for the active source, already narrowed to the selected
+	 * import scopes. Shared by the planner and the read-only library summary, so
+	 * the summary cannot report on a different set than the one a sync would use.
+	 */
+	async fetchLibraryItems(): Promise<{ items: LibraryItem[]; episodeStates: NuvioEpisodeState[]; warnings: string[] }> {
+		if (this.data.settings.provider === 'nuvio') {
+			const result = await this.nuvioItems();
+			this.newestMtime = new Date().toISOString();
+			return {
+				items: filterImportedItems(result.items, this.data.settings),
+				episodeStates: result.episodeStates,
+				warnings: result.warnings,
+			};
+		}
+
 		const authKey = requireSecret(this.app, this.data.settings.authKeySecretId, 'Stremio authKey');
 		const library = await fetchLibrary(authKey);
 		this.newestMtime = library.reduce(
 			(newest, item) => (item._mtime && item._mtime > newest ? item._mtime : newest),
 			'',
 		);
+		return { items: filterImportedItems(library, this.data.settings), episodeStates: [], warnings: [] };
+	}
 
-		const items = selectRelevant(library, selectionOptionsOf(this.data.settings));
+	/** Fetches, normalizes and plans. Makes no changes to the vault. */
+	async prepare(onProgress?: (done: number, total: number) => void): Promise<PreparedSync> {
+		const { items, episodeStates: nuvioEpisodeStates, warnings: providerWarnings } = await this.fetchLibraryItems();
 		const sources = this.metadataSources();
 		const warnings: NormalizeWarning[] = [];
 
@@ -80,9 +110,20 @@ export class SyncService {
 					mtime: item._mtime,
 					ttlDays: ttlDaysFor((item.state?.flaggedWatched ?? 0) > 0),
 				});
-				if (cached) return cached;
+				if (cached) {
+					return this.data.settings.provider === 'nuvio'
+						? applyNuvioEpisodeStates(cached, nuvioEpisodeStates)
+						: cached;
+				}
 
 				const result = await normalize(item, sources);
+				if (this.data.settings.provider === 'nuvio') {
+					result.media.id = `nuvio:${item._id}`;
+					result.media.stremioUrl = nuvioSourceUrl(item.type === 'series' ? 'series' : 'movie', item._id);
+					result.media.stremioAppUrl = '';
+					result.media.stremioEpisodeUrl = undefined;
+					return applyNuvioEpisodeStates(result.media, nuvioEpisodeStates);
+				}
 				warnings.push(...result.warnings);
 				this.cache.set(key, result.media, item._mtime);
 				return result.media;
@@ -101,12 +142,12 @@ export class SyncService {
 			settings: this.data.settings,
 			index: this.data.index,
 			templates: {
-				movie: await this.readTemplate(this.data.settings.movieTemplate),
-				series: await this.readTemplate(this.data.settings.seriesTemplate),
+				movie: await this.readTemplate(this.data.settings.movieTemplateText, this.data.settings.movieTemplate),
+				series: await this.readTemplate(this.data.settings.seriesTemplateText, this.data.settings.seriesTemplate),
 			},
 		});
 
-		return { plan, warnings: warnings.map((warning) => `${warning.mediaId}: ${warning.message}`) };
+		return { plan, warnings: [...providerWarnings, ...warnings.map((warning) => `${warning.mediaId}: ${warning.message}`)] };
 	}
 
 	async apply(plan: SyncPlan, options: ApplyOptions = {}): Promise<SyncResult> {
@@ -124,12 +165,12 @@ export class SyncService {
 		);
 
 		this.rebuildIndex(plan);
-		this.data.lastReport = result;
 		this.data.firstSyncDone = true;
 		// Only advance the watermark when the whole plan went through, so a failed
 		// or partial run is retried rather than silently skipped next time.
 		if (deselected === 0 && result.errors.length === 0 && this.newestMtime) {
-			this.data.lastSyncMtime = this.newestMtime;
+			if (this.data.settings.provider === 'nuvio') this.data.syncCursors.nuvio = this.newestMtime;
+			else this.data.lastSyncMtime = this.newestMtime;
 		}
 		// Cache entries are derived during prepare. Persist them only after the
 		// complete plan succeeded; a preview, partial run, or failed write must be
@@ -150,10 +191,12 @@ export class SyncService {
 			[this.data.settings.movieFolder, this.data.settings.seriesFolder].filter(Boolean),
 		);
 
+		const identityProperty = this.data.settings.properties.link ?? this.data.settings.properties.source ?? '';
 		for (const folder of folders) {
-			for (const note of this.gateway.listNotes(folder, this.data.settings.properties.source)) {
+			for (const note of this.gateway.listNotes(folder, identityProperty)) {
 				const parsed = note.source ? parseWebUrl(note.source) : null;
 				if (parsed) index[parsed.id] = note.path;
+				else if (note.source) index[this.data.settings.provider === 'nuvio' ? `nuvio:${note.source}` : note.source] = note.path;
 			}
 		}
 		// Notes written moments ago may not be in the metadata cache yet.
@@ -180,10 +223,36 @@ export class SyncService {
 	 */
 	private cacheKey(id: string): string {
 		const { language, watchedThresholdPercent, sampledThresholdMinutes } = this.data.settings;
-		return `norm:${id}:${language}:${watchedThresholdPercent}:${sampledThresholdMinutes}`;
+		return `norm:${this.data.settings.provider ?? 'none'}:${id}:${language}:${watchedThresholdPercent}:${sampledThresholdMinutes}`;
 	}
 
-	private async readTemplate(path: string): Promise<string> {
-		return readTemplateSource(this.app.vault, path);
+	private async nuvioItems(): Promise<{ items: LibraryItem[]; warnings: string[]; episodeStates: NuvioEpisodeState[] }> {
+		const secretId = this.data.settings.sessionSecretIds.nuvio ?? '';
+		const raw = requireSecret(this.app, secretId, 'Nuvio session');
+		let stored: NuvioSession;
+		try {
+			stored = JSON.parse(raw) as NuvioSession;
+			if (!stored.accessToken || !stored.refreshToken || !Number.isFinite(stored.expiresAt)) throw new Error('invalid');
+		} catch {
+			throw new NuvioApiError(t('nuvio.session.invalid'));
+		}
+		const backend = await discoverNuvioBackend(this.data.settings.nuvioBackendUrl);
+		const session = await ensureNuvioSession(backend, stored);
+		if (session.accessToken !== stored.accessToken || session.refreshToken !== stored.refreshToken) {
+			this.app.secretStorage.setSecret(secretId, JSON.stringify(session));
+		}
+		const profiles = await fetchNuvioProfiles(backend, session.accessToken);
+		const profileIndex = resolveNuvioProfileIndex(profiles, this.data.settings.nuvioProfileId);
+		return nuvioLibraryItems(
+			await fetchNuvioSnapshot(backend, session.accessToken, profileIndex),
+			this.data.settings.importScopes,
+		);
+	}
+
+	private async readTemplate(inlineText: string, path: string): Promise<string> {
+		// The visible file picker is the user's current choice. Inline text is a
+		// compatibility fallback for settings created before that editor was removed.
+		if (path) return readTemplateSource(this.app.vault, path);
+		return inlineText.trim() ? inlineText : readTemplateSource(this.app.vault, '');
 	}
 }

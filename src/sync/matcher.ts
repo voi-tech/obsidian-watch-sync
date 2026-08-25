@@ -36,7 +36,7 @@ export function matchNote(
 	notes: NoteRef[],
 	index: Record<string, string>,
 ): MatchOutcome {
-	const bySource = notes.filter((note) => note.source && parseWebUrl(note.source)?.id === media.id);
+	const bySource = notes.filter((note) => note.source && sourceMatches(note.source, media.id));
 	if (bySource.length === 1) return { match: { note: bySource[0], tier: 'source', certain: true } };
 	if (bySource.length > 1) {
 		return { conflict: conflictOf(media, t('conflict.sameSource'), bySource) };
@@ -46,7 +46,7 @@ export function matchNote(
 	const indexed = indexedPath ? notes.find((note) => note.path === indexedPath) : undefined;
 	// An index entry is only trustworthy while the note has not been claimed by
 	// something else; a foreign `source` means the file was reused.
-	if (indexed && (!indexed.source || parseWebUrl(indexed.source)?.id === media.id)) {
+	if (indexed && (!indexed.source || sourceMatches(indexed.source, media.id))) {
 		return { match: { note: indexed, tier: 'index', certain: false } };
 	}
 
@@ -78,6 +78,12 @@ export function matchNote(
 	}
 
 	return { match: null };
+}
+
+/** Supports the new raw {{source}} value as well as legacy source-app URLs. */
+function sourceMatches(value: string, mediaId: string): boolean {
+	if (parseWebUrl(value)?.id === mediaId) return true;
+	return value === mediaId || value === mediaId.replace(/^nuvio:/, '');
 }
 
 function conflictOf(media: NormalizedMedia, reason: string, candidates: NoteRef[]): Conflict {

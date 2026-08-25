@@ -45,6 +45,7 @@ export function imdbUrl(imdbId: string | undefined): string | undefined {
 }
 
 const WEB_URL_PATTERN = /^https:\/\/web\.stremio\.com\/#\/detail\/(movie|series)\/([^/]+)/;
+const NUVIO_URL_PATTERN = /^nuvio:\/\/content\/([^/]+)$/;
 
 /**
  * Reads a Stremio id back out of a note's `source` property. Deliberately
@@ -53,8 +54,32 @@ const WEB_URL_PATTERN = /^https:\/\/web\.stremio\.com\/#\/detail\/(movie|series)
  */
 export function parseWebUrl(url: string): { type: MediaType; id: string } | null {
 	const match = WEB_URL_PATTERN.exec(url.trim());
-	if (!match) return null;
-	return { type: match[1] as MediaType, id: decodeURIComponent(match[2]) };
+	if (match) return { type: match[1] as MediaType, id: decodeURIComponent(match[2]) };
+	try {
+		const parsed = new URL(url.trim());
+		if (parsed.protocol === 'nuvio:' && parsed.hostname === 'meta') {
+			const type = parsed.searchParams.get('type');
+			const id = parsed.searchParams.get('id');
+			// Nuvio ids carry the `nuvio:` namespace everywhere else, including
+			// `NormalizedMedia.id`. Returning the bare id here made the source tier
+			// miss every note the plugin had written itself.
+			if ((type === 'movie' || type === 'series') && id) return { type, id: `nuvio:${id}` };
+		}
+	} catch {
+		// Source properties are user-editable; malformed custom URLs are simply unclaimed.
+	}
+	const nuvio = NUVIO_URL_PATTERN.exec(url.trim());
+	if (!nuvio) return null;
+	return { type: 'movie', id: `nuvio:${decodeURIComponent(nuvio[1])}` };
+}
+
+/** Stable Nuvio deep link. The one-argument overload keeps old imports readable until re-synced. */
+export function nuvioSourceUrl(type: MediaType, contentId: string): string;
+/** Legacy compatibility overload for sources created before typed Nuvio links. */
+export function nuvioSourceUrl(contentId: string): string;
+export function nuvioSourceUrl(typeOrContentId: string, contentId?: string): string {
+	if (contentId === undefined) return `nuvio://content/${encodeURIComponent(typeOrContentId)}`;
+	return `nuvio://meta?type=${typeOrContentId}&id=${encodeURIComponent(contentId)}`;
 }
 
 /** `tt19854762:2:8` → `{ season: 2, episode: 8 }`; null for movie ids. */

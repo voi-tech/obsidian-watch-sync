@@ -159,6 +159,21 @@ export function selectOperations(plan: SyncPlan, keep: (operation: Operation) =>
 
 export type MetadataLanguage = 'pl-PL' | 'en-US';
 
+/** Provider whose read-only library and playback data is imported. Null means no source selected yet. */
+export type SyncProvider = 'stremio' | 'nuvio';
+export type SelectedSyncProvider = SyncProvider | null;
+
+/** Independent parts of a provider account that can be imported. */
+export type ImportScope = 'library' | 'watchHistory' | 'progress';
+
+export const DEFAULT_IMPORT_SCOPES: ImportScope[] = ['library', 'watchHistory', 'progress'];
+
+/** SecretStorage references only; values are never part of persisted plugin data. */
+export type ProviderSecretIds = Partial<Record<SyncProvider, string>>;
+
+/** Provider-specific incremental watermarks. Empty means a full import is needed. */
+export type ProviderSyncCursors = Partial<Record<SyncProvider, string>>;
+
 /**
  * How much of an existing note's body the plugin may write.
  *
@@ -174,30 +189,38 @@ export type ExistingBodyMode = 'leave' | 'managed-block' | 'rewrite';
  * Frontmatter keys the plugin owns. Configurable because no two vaults name
  * these the same way; an empty string switches the property off entirely.
  */
-export interface PropertyNames {
-	releaseDate: string;
-	lastWatched: string;
-	duration: string;
-	cover: string;
-	source: string;
-}
+/** Flat template values which can optionally be written to Obsidian properties. */
+export type TemplatePropertyKey =
+	| 'title' | 'original' | 'source' | 'provider' | 'kind' | 'year' | 'years' | 'released'
+	| 'description' | 'duration' | 'genres' | 'cast' | 'director' | 'cover' | 'backdrop'
+	| 'link' | 'resume' | 'imdb' | 'status' | 'progress' | 'finished' | 'watched' | 'episodes' | 'current';
 
-export const DEFAULT_PROPERTY_NAMES: PropertyNames = {
-	releaseDate: 'released',
-	lastWatched: 'end',
-	duration: 'duration',
-	cover: 'cover',
-	source: 'source',
-};
+export type PropertyNames = Partial<Record<TemplatePropertyKey, string>>;
 
-export interface StremioSyncSettings {
+export const DEFAULT_PROPERTY_NAMES: PropertyNames = {};
+
+export interface WatchSyncSettings {
+	/** Read-only source selected for the next import. */
+	provider: SelectedSyncProvider;
+	/** Data sections selected for import. */
+	importScopes: ImportScope[];
 	/** SecretStorage id, never the value itself. */
 	authKeySecretId: string;
 	tmdbKeySecretId: string;
+	/** SecretStorage ids for provider sessions; never session values or passwords. */
+	sessionSecretIds: ProviderSecretIds;
+	/** Configurable Nuvio backend; defaults to the official hosted backend. */
+	nuvioBackendUrl: string;
+	/** Selected Nuvio profile persisted by stable id and display name. */
+	nuvioProfileId: string;
+	nuvioProfileName: string;
 	movieFolder: string;
 	seriesFolder: string;
 	movieTemplate: string;
 	seriesTemplate: string;
+	/** Optional inline Markdown overrides; empty means use the selected file or built-in template. */
+	movieTemplateText: string;
+	seriesTemplateText: string;
 	movieFilenamePattern: string;
 	seriesFilenamePattern: string;
 	language: MetadataLanguage;
@@ -222,33 +245,53 @@ export interface StremioSyncSettings {
 }
 
 export interface PluginData {
-	/** Persisted-data contract version; incompatible versions start clean. */
+	/** Persisted-data contract version. Schema 1 is migrated without data loss. */
 	schemaVersion: number;
-	settings: StremioSyncSettings;
+	settings: WatchSyncSettings;
 	/** Stremio id → vault path. A cache; `source` in frontmatter stays the source of truth. */
 	index: Record<string, string>;
+	/** Per-provider incremental cursors. */
+	syncCursors: ProviderSyncCursors;
+	/** Compatibility mirror retained while older service code migrates to syncCursors.stremio. */
 	lastSyncMtime?: string;
-	lastReport?: SyncResult;
+	recentEvents: RecentEvent[];
 	firstSyncDone: boolean;
 }
 
-export const DATA_SCHEMA_VERSION = 1;
+export interface RecentEvent {
+	at: string;
+	kind: 'sync' | 'connection';
+	status: 'success' | 'warning' | 'error';
+	message: string;
+}
 
-export const DEFAULT_SETTINGS: StremioSyncSettings = {
+export const DATA_SCHEMA_VERSION = 3;
+
+export const DEFAULT_NUVIO_BACKEND_URL = 'https://api.nuvio.tv';
+
+export const DEFAULT_SETTINGS: WatchSyncSettings = {
+	provider: null,
+	importScopes: [],
 	authKeySecretId: '',
 	tmdbKeySecretId: '',
+	sessionSecretIds: {},
+	nuvioBackendUrl: DEFAULT_NUVIO_BACKEND_URL,
+	nuvioProfileId: '',
+	nuvioProfileName: '',
 	movieFolder: '',
 	seriesFolder: '',
 	movieTemplate: '',
 	seriesTemplate: '',
+	movieTemplateText: '',
+	seriesTemplateText: '',
 	movieFilenamePattern: '{{title}} ({{year}})',
-	seriesFilenamePattern: '{{title}} ({{yearStart}}-{{yearEnd}})',
+	seriesFilenamePattern: '{{title}} ({{years}})',
 	language: 'pl-PL',
 	includeUnwatchedLibrary: true,
 	skipSampledTitles: true,
 	sampledThresholdMinutes: 5,
 	watchedThresholdPercent: 70,
-	doneTag: 'done',
+	doneTag: '',
 	properties: DEFAULT_PROPERTY_NAMES,
 	confirmBeforeWriting: true,
 	existingBodyMode: 'leave',
@@ -262,7 +305,7 @@ export const DEFAULT_SETTINGS: StremioSyncSettings = {
  * build a whole sync service to ask the question.
  */
 export function selectionOptionsOf(
-	settings: StremioSyncSettings,
+	settings: WatchSyncSettings,
 ): WatchThresholds & { includeUnwatchedLibrary: boolean; skipSampledTitles: boolean } {
 	return {
 		includeUnwatchedLibrary: settings.includeUnwatchedLibrary,
@@ -276,5 +319,7 @@ export const DEFAULT_DATA: PluginData = {
 	schemaVersion: DATA_SCHEMA_VERSION,
 	settings: DEFAULT_SETTINGS,
 	index: {},
+	syncCursors: {},
+	recentEvents: [],
 	firstSyncDone: false,
 };

@@ -12,7 +12,12 @@ const MOVIES = 'Movies';
 const SERIES = 'Series';
 
 const options = (overrides: Partial<EngineOptions> = {}): EngineOptions => ({
-	settings: { ...DEFAULT_SETTINGS, movieFolder: MOVIES, seriesFolder: SERIES },
+	settings: {
+		...DEFAULT_SETTINGS,
+		movieFolder: MOVIES,
+		seriesFolder: SERIES,
+		properties: { released: 'released', watched: 'end', duration: 'duration', cover: 'cover', link: 'source' },
+	},
 	index: {},
 	templates: { movie: '', series: '' },
 	...overrides,
@@ -106,15 +111,21 @@ describe('buildPlan — new notes', () => {
 		expect(plan.create[0].path).toBe(`${MOVIES}/Alien - Romulus (2024).md`);
 	});
 
-	it('writes the managed properties and the done tag', async () => {
+	it('writes only template-key properties that the user maps, plus the done tag', async () => {
 		const vault = new FakeVault();
-		const plan = await buildPlan([movie()], vault, options());
+		const plan = await buildPlan([movie()], vault, options({
+			settings: {
+				...DEFAULT_SETTINGS,
+				movieFolder: MOVIES,
+				seriesFolder: SERIES,
+				doneTag: 'done',
+				properties: { released: 'released', duration: 'duration', link: 'source' },
+			},
+		}));
 		await run(plan, vault);
 		expect(vault.frontmatter.get(`${MOVIES}/Arrival (2016).md`)).toEqual({
 			released: '2016-11-11',
-			end: '2024-06-21',
 			duration: 116,
-			cover: 'https://image.tmdb.org/t/p/original//pEzNVQfdzYDzVK0XqxERIw2x2se.jpg',
 			source: webUrl('movie', 'tt0167260'),
 			tags: ['done'],
 		});
@@ -128,11 +139,11 @@ describe('buildPlan — new notes', () => {
 		renamed.settings = {
 			...renamed.settings,
 			properties: {
-				releaseDate: 'premiere',
-				lastWatched: '',
+				released: 'premiere',
+				watched: '',
 				duration: 'runtime',
 				cover: 'poster',
-				source: 'stremio',
+				link: 'stremio',
 			},
 		};
 		await run(await buildPlan([movie()], vault, renamed), vault);
@@ -285,7 +296,7 @@ describe('buildPlan — adoption of hand-written notes', () => {
 		const renamed = options();
 		renamed.settings = {
 			...renamed.settings,
-			properties: { ...renamed.settings.properties, source: 'stremio' },
+			properties: { ...renamed.settings.properties, link: 'stremio' },
 		};
 		const plan = await buildPlan([movie()], vault, renamed);
 		expect(plan.create).toHaveLength(0);

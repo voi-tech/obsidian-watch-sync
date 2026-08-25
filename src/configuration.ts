@@ -1,4 +1,4 @@
-import type { StremioSyncSettings } from './model/types';
+import type { WatchSyncSettings } from './model/types';
 import { t } from './i18n';
 
 export interface ConfigurationEnvironment {
@@ -19,10 +19,9 @@ export function tagProblem(tag: string): string | null {
 	return null;
 }
 
-function duplicatePropertyName(settings: StremioSyncSettings): string | null {
+function duplicatePropertyName(settings: WatchSyncSettings): string | null {
 	const used = new Set<string>();
-	const names = settings.properties;
-	for (const name of [names.releaseDate, names.lastWatched, names.duration, names.cover, names.source]) {
+	for (const name of Object.values(settings.properties)) {
 		if (!name) continue;
 		if (used.has(name)) return name;
 		used.add(name);
@@ -32,11 +31,31 @@ function duplicatePropertyName(settings: StremioSyncSettings): string | null {
 
 /** Returns the first problem that makes a sync unsafe to start. */
 export function configurationProblem(
-	settings: StremioSyncSettings,
+	settings: WatchSyncSettings,
 	environment: ConfigurationEnvironment,
 ): string | null {
-	if (!settings.authKeySecretId || !environment.hasSecret(settings.authKeySecretId)) {
-		return t('config.secret');
+	if (!settings.provider) {
+		return t('config.provider');
+	}
+	if (settings.importScopes.length === 0) {
+		return t('config.scopes');
+	}
+
+	if (settings.provider === 'stremio') {
+		const secretId = settings.authKeySecretId || settings.sessionSecretIds.stremio || '';
+		if (!secretId || !environment.hasSecret(secretId)) {
+			return t('config.secret');
+		}
+	}
+
+	if (settings.provider === 'nuvio') {
+		const secretId = settings.sessionSecretIds.nuvio || '';
+		if (!secretId || !environment.hasSecret(secretId)) {
+			return t('config.nuvioSecret');
+		}
+		if (!settings.nuvioProfileId) {
+			return t('config.nuvioProfile');
+		}
 	}
 
 	for (const [key, folder] of [

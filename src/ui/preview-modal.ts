@@ -71,24 +71,23 @@ export class PreviewModal extends Modal {
 		private readonly onDecision: (decision: PreviewDecision) => void,
 	) {
 		super(app);
-		for (const operation of allOperations(plan)) this.selected.add(operation);
 	}
 
 	override onOpen(): void {
 		const { contentEl } = this;
 		this.setTitle(t('preview.title'));
-		this.modalEl.addClass('stremio-sync-preview');
+		this.modalEl.addClass('watch-sync-preview');
 
 		this.groups = groupByTitle(this.plan);
-		this.summaryEl = contentEl.createEl('p', { cls: 'stremio-sync-summary-line' });
+		this.summaryEl = contentEl.createEl('p', { cls: 'watch-sync-summary-line' });
 
 		if (planSize(this.plan) > 0) {
 			this.renderToolbar(contentEl);
-			const list = contentEl.createDiv({ cls: 'stremio-sync-groups' });
+			const list = contentEl.createDiv({ cls: 'watch-sync-groups' });
 			for (const group of this.groups) this.renderGroup(list, group);
 			this.emptyEl = contentEl.createEl('p', {
 				text: t('preview.empty'),
-				cls: 'stremio-sync-note stremio-sync-empty',
+				cls: 'watch-sync-note watch-sync-empty',
 			});
 		}
 
@@ -117,13 +116,13 @@ export class PreviewModal extends Modal {
 
 	/** Counts, a category filter and a search box — three ways to cut 200 titles down. */
 	private renderToolbar(containerEl: HTMLElement): void {
-		const counts = containerEl.createDiv({ cls: 'stremio-sync-counts' });
+		const counts = containerEl.createDiv({ cls: 'watch-sync-counts' });
 		const chips: HTMLElement[] = [];
 
 		const addChip = (key: Category | 'all', label: string, count: number): void => {
-			const chip = counts.createEl('button', { cls: 'stremio-sync-chip' });
+			const chip = counts.createEl('button', { cls: 'watch-sync-chip' });
 			chip.createSpan({ text: label });
-			chip.createSpan({ text: String(count), cls: 'stremio-sync-chip-count' });
+			chip.createSpan({ text: String(count), cls: 'watch-sync-chip-count' });
 			if (this.categoryFilter === key) chip.addClass('is-active');
 			chips.push(chip);
 			chip.addEventListener('click', () => {
@@ -141,7 +140,7 @@ export class PreviewModal extends Modal {
 		}
 
 		const input = containerEl
-			.createDiv({ cls: 'stremio-sync-search' })
+			.createDiv({ cls: 'watch-sync-search' })
 				.createEl('input', { type: 'search', placeholder: t('preview.filter') });
 		input.addEventListener('input', () => {
 			this.filterText = input.value.trim().toLowerCase();
@@ -149,23 +148,23 @@ export class PreviewModal extends Modal {
 		});
 
 		new Setting(containerEl)
-			.setClass('stremio-sync-bulk')
+			.setClass('watch-sync-bulk')
 				.setDesc(t('preview.unchecked'))
 				.addButton((button) => button.setButtonText(t('preview.selectAll')).onClick(() => this.setAll(true)))
 				.addButton((button) => button.setButtonText(t('preview.selectNone')).onClick(() => this.setAll(false)));
 	}
 
 	private renderGroup(container: HTMLElement, group: TitleGroup): void {
-		const groupEl = container.createDiv({ cls: 'stremio-sync-group' });
+		const groupEl = container.createDiv({ cls: 'watch-sync-group' });
 
-		const header = groupEl.createEl('label', { cls: 'stremio-sync-group-header' });
+		const header = groupEl.createEl('label', { cls: 'watch-sync-group-header' });
 		const groupBox = header.createEl('input', { type: 'checkbox' });
-		groupBox.checked = true;
+		groupBox.checked = false;
 
-		const text = header.createDiv({ cls: 'stremio-sync-group-text' });
-		text.createDiv({ text: group.title, cls: 'stremio-sync-group-title' });
-		text.createDiv({ text: group.path, cls: 'stremio-sync-group-path' });
-		header.createSpan({ text: categoryLabel(group.category), cls: 'stremio-sync-group-badge' });
+		const text = header.createDiv({ cls: 'watch-sync-group-text' });
+		text.createDiv({ text: group.title, cls: 'watch-sync-group-title' });
+		text.createDiv({ text: group.path, cls: 'watch-sync-group-path' });
+		header.createSpan({ text: categoryLabel(group.category), cls: 'watch-sync-group-badge' });
 
 		this.groupCheckboxes.set(group.mediaId, groupBox);
 		this.rows.set(group.mediaId, { el: groupEl, group });
@@ -180,13 +179,13 @@ export class PreviewModal extends Modal {
 			this.refreshSummary();
 		});
 
-		const rows = groupEl.createEl('ul', { cls: 'stremio-sync-operations' });
+		const rows = groupEl.createEl('ul', { cls: 'watch-sync-operations' });
 		for (const operation of group.operations) {
 			const label = rows.createEl('li').createEl('label');
 			const box = label.createEl('input', { type: 'checkbox' });
-			box.checked = true;
-			label.createSpan({ text: kindLabel(operation.kind), cls: 'stremio-sync-kind' });
-			label.createSpan({ text: operation.summary(), cls: 'stremio-sync-op-text' });
+			box.checked = false;
+			label.createSpan({ text: kindLabel(operation.kind), cls: 'watch-sync-kind' });
+			label.createSpan({ text: operation.summary(), cls: 'watch-sync-op-text' });
 			this.operationCheckboxes.set(operation, box);
 
 			box.addEventListener('change', () => {
@@ -273,30 +272,38 @@ export class PreviewModal extends Modal {
 
 	/** Anything the user cannot act on, folded away so it never buries the list. */
 	private renderProblems(containerEl: HTMLElement): void {
-		const sections: { title: string; items: string[]; warning?: boolean }[] = [
+		const sections: { title: string; intro: string; items: string[]; warning?: boolean }[] = [
 			{
 				title: t('preview.conflicts'),
-				items: this.plan.conflicts.map(
-					(conflict) => `${conflict.title}: ${conflict.reason} → ${conflict.candidates.join(', ')}`,
-				),
+				intro: 'Why: more than one note could match, so nothing is changed. How to fix: keep one matching note or give each note a different source property.',
+				items: this.plan.conflicts.map((conflict) => `${conflict.title}: ${conflict.reason} (${conflict.candidates.join(', ')})`),
 				warning: true,
 			},
-			{ title: t('preview.skipped'), items: this.plan.skipped.map((s) => `${s.title}: ${s.reason}`) },
-			{ title: t('preview.warnings'), items: this.warnings },
+			{
+				title: t('preview.skipped'),
+				intro: 'Why: a safe operation could not be prepared. How to fix: resolve the reason listed for the title, then sync again.',
+				items: this.plan.skipped.map((s) => `${s.title}: ${s.reason}`),
+			},
+			{
+				title: t('preview.warnings'),
+				intro: 'Why: source or metadata data is incomplete. How to fix: check the source account data or TMDB, then sync again.',
+				items: this.warnings,
+			},
 		];
 
 		for (const section of sections) {
 			if (section.items.length === 0) continue;
-			const details = containerEl.createEl('details', { cls: 'stremio-sync-details' });
+			const details = containerEl.createEl('details', { cls: 'watch-sync-details' });
 			details.createEl('summary', { text: `${section.title} (${section.items.length})` });
+			details.createEl('p', { text: section.intro, cls: 'watch-sync-note' });
 			const list = details.createEl('ul', {
-				cls: section.warning ? 'stremio-sync-list mod-warning' : 'stremio-sync-list',
+				cls: section.warning ? 'watch-sync-list mod-warning' : 'watch-sync-list',
 			});
 			for (const item of section.items.slice(0, 100)) list.createEl('li', { text: item });
 			if (section.items.length > 100) {
 				details.createEl('p', {
 					text: t('preview.more', { count: section.items.length - 100 }),
-					cls: 'stremio-sync-note',
+					cls: 'watch-sync-note',
 				});
 			}
 		}
@@ -304,7 +311,7 @@ export class PreviewModal extends Modal {
 
 	private renderFooter(containerEl: HTMLElement): void {
 		new Setting(containerEl)
-			.setClass('stremio-sync-footer')
+			.setClass('watch-sync-footer')
 			.addButton((button) => {
 				this.applyButton = button;
 				button

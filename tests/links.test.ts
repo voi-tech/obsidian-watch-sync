@@ -5,6 +5,7 @@ import {
 	imdbUrl,
 	parseVideoId,
 	parseWebUrl,
+	nuvioSourceUrl,
 	webEpisodeUrl,
 	webUrl,
 } from '../src/stremio/links';
@@ -59,6 +60,25 @@ describe('links', () => {
 
 	it('ignores unrelated source values', () => {
 		expect(parseWebUrl('https://www.imdb.com/title/tt0167260/')).toBeNull();
+	});
+
+	it('builds Nuvio deep links for movies and series', () => {
+		expect(nuvioSourceUrl('movie', 'tt0167260')).toBe('nuvio://meta?type=movie&id=tt0167260');
+		expect(nuvioSourceUrl('series', 'provider:show/1')).toBe('nuvio://meta?type=series&id=provider%3Ashow%2F1');
+	});
+
+	it('parses Nuvio deep links and preserves legacy Nuvio sources', () => {
+		expect(parseWebUrl('nuvio://meta?type=series&id=provider%3Ashow%2F1')).toEqual({
+			type: 'series',
+			id: 'nuvio:provider:show/1',
+		});
+		expect(parseWebUrl('nuvio://content/legacy%3A1')).toEqual({ type: 'movie', id: 'nuvio:legacy:1' });
+	});
+
+	it('round-trips a Nuvio source link back to the media id it was written from', () => {
+		// Without the namespace the source tier missed every Nuvio note, and a sync
+		// on a vault with no local index created a duplicate instead of matching.
+		expect(parseWebUrl(nuvioSourceUrl('movie', 'tt0167260'))?.id).toBe('nuvio:tt0167260');
 	});
 
 	it('parses season and episode out of a video id', () => {

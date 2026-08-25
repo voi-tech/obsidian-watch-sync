@@ -17,7 +17,7 @@ const MOVIES = 'Movies';
 const SERIES = 'Series';
 
 const options = (): EngineOptions => ({
-	settings: { ...DEFAULT_SETTINGS, movieFolder: MOVIES, seriesFolder: SERIES },
+	settings: { ...DEFAULT_SETTINGS, movieFolder: MOVIES, seriesFolder: SERIES, properties: { link: 'source' } },
 	index: {},
 	templates: { movie: '', series: '' },
 });

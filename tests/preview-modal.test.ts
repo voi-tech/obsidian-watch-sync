@@ -60,14 +60,14 @@ function open(plan: SyncPlan, warnings: string[] = []) {
 		modal,
 		root,
 		decisions,
-		groups: () => Array.from(root.querySelectorAll('.stremio-sync-group')),
+		groups: () => Array.from(root.querySelectorAll('.watch-sync-group')),
 		visibleGroups: () =>
-			Array.from(root.querySelectorAll('.stremio-sync-group')).filter(
+			Array.from(root.querySelectorAll('.watch-sync-group')).filter(
 				(el) => !el.classList.contains('is-hidden'),
 			),
-		summary: () => root.querySelector('.stremio-sync-summary-line')?.textContent ?? '',
-		chips: () => Array.from(root.querySelectorAll<HTMLButtonElement>('.stremio-sync-chip')),
-		search: () => root.querySelector<HTMLInputElement>('.stremio-sync-search input')!,
+		summary: () => root.querySelector('.watch-sync-summary-line')?.textContent ?? '',
+		chips: () => Array.from(root.querySelectorAll<HTMLButtonElement>('.watch-sync-chip')),
+		search: () => root.querySelector<HTMLInputElement>('.watch-sync-search input')!,
 		applyButton: () =>
 			Array.from(root.querySelectorAll<HTMLButtonElement>('button')).find((b) =>
 				b.textContent?.startsWith('Apply'),
@@ -105,7 +105,7 @@ describe('preview layout', () => {
 
 	it('lists operations by their short summary', () => {
 		const ui = open(samplePlan());
-		const texts = Array.from(ui.root.querySelectorAll('.stremio-sync-op-text')).map((el) => el.textContent);
+		const texts = Array.from(ui.root.querySelectorAll('.watch-sync-op-text')).map((el) => el.textContent);
 		expect(texts).toContain('Create the note');
 		expect(texts.every((text) => !text?.includes('.md'))).toBe(true);
 	});
@@ -120,16 +120,16 @@ describe('preview layout', () => {
 		]);
 	});
 
-	it('uses Polish labels when Obsidian is set to Polish', () => {
+	it('keeps English labels when Obsidian is set to Polish', () => {
 		vi.spyOn(obsidian, 'getLanguage').mockReturnValue('pl');
 		const ui = open(samplePlan());
 
-		expect(ui.modal.titleEl.textContent).toBe('Stremio Sync — podgląd');
+		expect(ui.modal.titleEl.textContent).toBe('Watch Sync — preview');
 		expect(ui.chips().map((chip) => chip.textContent)).toEqual([
-			'Wszystkie3',
-			'Nowe notatki1',
-			'Przejęte1',
-			'Zaktualizowane1',
+			'All3',
+			'New notes1',
+			'Adopted1',
+			'Updated1',
 		]);
 	});
 
@@ -172,7 +172,7 @@ describe('filtering', () => {
 		const ui = open(samplePlan());
 		ui.search().value = 'nothing at all';
 		ui.search().dispatchEvent(new Event('input'));
-		expect(ui.root.querySelector('.stremio-sync-empty')?.classList.contains('is-hidden')).toBe(false);
+		expect(ui.root.querySelector('.watch-sync-empty')?.classList.contains('is-hidden')).toBe(false);
 	});
 
 	it('does not change what is selected', () => {
@@ -180,7 +180,7 @@ describe('filtering', () => {
 		const ui = open(plan);
 		ui.search().value = 'sever';
 		ui.search().dispatchEvent(new Event('input'));
-		expect(ui.summary()).toContain(`${planSize(plan)} of ${planSize(plan)}`);
+		expect(ui.summary()).toContain('Nothing is selected');
 	});
 });
 
@@ -191,10 +191,10 @@ describe('selection', () => {
 		ui.search().value = 'sever';
 		ui.search().dispatchEvent(new Event('input'));
 
-		const selectNone = Array.from(ui.root.querySelectorAll<HTMLButtonElement>('button')).find(
-			(b) => b.textContent === 'Select none',
+		const selectAll = Array.from(ui.root.querySelectorAll<HTMLButtonElement>('button')).find(
+			(b) => b.textContent === 'Select all',
 		)!;
-		selectNone.click();
+		selectAll.click();
 
 		// Severance contributed two operations; the other two titles keep theirs.
 		expect(ui.summary()).toContain('2 of 4 operations selected');
@@ -203,7 +203,8 @@ describe('selection', () => {
 	it('reports the deselected count when applying', () => {
 		const plan = samplePlan();
 		const ui = open(plan);
-		const firstBox = ui.root.querySelector<HTMLInputElement>('.stremio-sync-operations input')!;
+		Array.from(ui.root.querySelectorAll<HTMLButtonElement>('button')).find((b) => b.textContent === 'Select all')!.click();
+		const firstBox = ui.root.querySelector<HTMLInputElement>('.watch-sync-operations input')!;
 		firstBox.checked = false;
 		firstBox.dispatchEvent(new Event('change'));
 
@@ -224,11 +225,12 @@ describe('selection', () => {
 	it('marks a partly selected group as indeterminate', () => {
 		const ui = open(samplePlan());
 		const severance = ui.groups().find((el) => el.textContent?.includes('Severance'))!;
-		const opBox = severance.querySelector<HTMLInputElement>('.stremio-sync-operations input')!;
+		severance.querySelector<HTMLInputElement>('.watch-sync-group-header input')!.click();
+		const opBox = severance.querySelector<HTMLInputElement>('.watch-sync-operations input')!;
 		opBox.checked = false;
 		opBox.dispatchEvent(new Event('change'));
 
-		const groupBox = severance.querySelector<HTMLInputElement>('.stremio-sync-group-header input')!;
+		const groupBox = severance.querySelector<HTMLInputElement>('.watch-sync-group-header input')!;
 		expect(groupBox.indeterminate).toBe(true);
 	});
 

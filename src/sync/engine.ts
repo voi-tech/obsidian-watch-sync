@@ -2,7 +2,7 @@ import type {
 	Conflict,
 	NormalizedMedia,
 	Skipped,
-	StremioSyncSettings,
+	WatchSyncSettings,
 	SyncPlan,
 } from '../model/types';
 import { emptyPlan } from '../model/types';
@@ -38,7 +38,7 @@ import {
 import { t } from '../i18n';
 
 export interface EngineOptions {
-	settings: StremioSyncSettings;
+	settings: WatchSyncSettings;
 	index: Record<string, string>;
 	/** Template bodies already read from the vault; empty falls back to built-ins. */
 	templates: { movie: string; series: string };
@@ -58,9 +58,10 @@ export async function buildPlan(
 	const { settings } = options;
 
 	const notesByFolder = new Map<string, NoteRef[]>();
+	const identityProperty = settings.properties.link ?? settings.properties.source ?? '';
 	const notesFor = (folder: string): NoteRef[] => {
 		if (!notesByFolder.has(folder)) {
-			notesByFolder.set(folder, gateway.listNotes(folder, settings.properties.source));
+			notesByFolder.set(folder, gateway.listNotes(folder, identityProperty));
 		}
 		return notesByFolder.get(folder)!;
 	};
@@ -225,7 +226,7 @@ function planAdopt(
 	media: NormalizedMedia,
 	note: NoteRef,
 	patch: Record<string, unknown>,
-	settings: StremioSyncSettings,
+	settings: WatchSyncSettings,
 	tier: string,
 ): ApplicableOperation[] {
 	const gaps: Record<string, unknown> = {};
@@ -233,7 +234,7 @@ function planAdopt(
 		if (value === undefined || value === null || value === '') continue;
 		// The link is what claims the note, so it is always written; everything
 		// else only fills a gap.
-		if (key === settings.properties.source || !hasFrontmatterValue(note, key)) gaps[key] = value;
+		if (key === (settings.properties.link ?? settings.properties.source) || !hasFrontmatterValue(note, key)) gaps[key] = value;
 	}
 	return [new AdoptNote(media.id, media.title, note.path, gaps, tagsFor(media, settings), tier)];
 }
@@ -242,7 +243,7 @@ function planAdopt(
 function planUpdate(
 	media: NormalizedMedia,
 	note: NoteRef,
-	settings: StremioSyncSettings,
+	settings: WatchSyncSettings,
 ): ApplicableOperation[] {
 	const current = note.frontmatter;
 	const patch = frontmatterPatch(media, settings);
@@ -278,7 +279,7 @@ async function planBody(
 	gateway: VaultGateway,
 	templates: { movie: string; series: string },
 	blockTemplates: { movie: string | null; series: string | null },
-	settings: StremioSyncSettings,
+	settings: WatchSyncSettings,
 ): Promise<ApplicableOperation[]> {
 	const content = await gateway.readCached(note.path);
 	const isSeries = media.type === 'series';
@@ -325,23 +326,21 @@ async function planBody(
  */
 export function frontmatterPatch(
 	media: NormalizedMedia,
-	settings: StremioSyncSettings,
+	settings: WatchSyncSettings,
 ): Record<string, unknown> {
 	const names = settings.properties;
+	const context = buildContext(media);
 	const patch: Record<string, unknown> = {};
-	const put = (name: string, value: unknown): void => {
+	const put = (name: string | undefined, value: unknown): void => {
 		if (name && value !== undefined && value !== null && value !== '') patch[name] = value;
 	};
-
-	put(names.releaseDate, media.releaseDate);
-	put(names.lastWatched, media.lastWatched);
-	put(names.duration, media.durationMinutes);
-	put(names.cover, media.cover);
-	put(names.source, media.stremioUrl);
+	for (const [key, name] of Object.entries(names)) {
+		put(name, context[key as keyof typeof context]);
+	}
 	return patch;
 }
 
-export function tagsFor(media: NormalizedMedia, settings: StremioSyncSettings): string[] {
+export function tagsFor(media: NormalizedMedia, settings: WatchSyncSettings): string[] {
 	return media.finished && settings.doneTag ? [settings.doneTag] : [];
 }
 

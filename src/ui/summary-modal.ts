@@ -92,7 +92,7 @@ export class SummaryModal extends Modal {
 			[t('summary.tmdbIds'), String(this.summary.tmdbIds)],
 		];
 
-		const table = contentEl.createEl('table', { cls: 'stremio-sync-summary' });
+		const table = contentEl.createEl('table', { cls: 'watch-sync-summary' });
 		for (const [label, value] of rows) {
 			const tr = table.createEl('tr');
 			tr.createEl('td', { text: label });
@@ -117,7 +117,7 @@ export class SummaryModal extends Modal {
 
 		contentEl.createEl('p', {
 			text: t('summary.readOnly'),
-			cls: 'stremio-sync-note',
+			cls: 'watch-sync-note',
 		});
 	}
 

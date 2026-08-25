@@ -5,6 +5,9 @@ const manifest = JSON.parse(await readFile("manifest.json", "utf8"));
 const versions = JSON.parse(await readFile("versions.json", "utf8"));
 const errors = [];
 
+const PLUGIN_ID = "watch-sync";
+const PLUGIN_NAME = "Watch Sync";
+
 if (packageData.version !== manifest.version) {
 	errors.push("package.json and manifest.json versions do not match.");
 }
@@ -18,7 +21,24 @@ if (versions[manifest.version] !== manifest.minAppVersion) {
 }
 
 if (manifest.isDesktopOnly !== false) {
-	errors.push("manifest.json must declare isDesktopOnly as false for the mobile beta.");
+	errors.push("manifest.json must declare isDesktopOnly as false; the plugin supports mobile.");
+}
+
+if (manifest.id !== PLUGIN_ID) {
+	errors.push(`manifest.json must declare the id "${PLUGIN_ID}".`);
+}
+
+if (manifest.name !== PLUGIN_NAME) {
+	errors.push(`manifest.json must declare the name "${PLUGIN_NAME}".`);
+}
+
+if (packageData.description !== manifest.description) {
+	errors.push("package.json and manifest.json descriptions do not match.");
+}
+
+// A rename that only lands in half the strings is the failure this guards against.
+if (/stremio[ -]sync/i.test(JSON.stringify(manifest))) {
+	errors.push("manifest.json still refers to the plugin by its former name.");
 }
 
 for (const file of ["main.js", "manifest.json", "styles.css"]) {

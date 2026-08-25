@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { MetadataCache } from '../src/meta/cache';
 import { DEFAULT_DATA } from '../src/model/types';
-import { SyncService } from '../src/sync/service';
+import { filterImportedItems, SyncService } from '../src/sync/service';
 import type { ApplicableOperation } from '../src/sync/operations';
 import { FakeVault } from './fake-gateway';
 
-const PATH = 'plugins/stremio-sync/cache.json';
+const PATH = 'plugins/watch-sync/cache.json';
 
 function fakeAdapter() {
 	const files = new Map<string, string>();
@@ -51,6 +51,36 @@ function serviceWithCache() {
 }
 
 describe('sync cache durability', () => {
+	it('uses the selected template file before a legacy inline override', async () => {
+		const { service } = serviceWithCache();
+		const readTemplate = service as unknown as {
+			readTemplate: (inline: string, path: string) => Promise<string>;
+		};
+		await expect(readTemplate.readTemplate('# {{media.title}}', 'Templates/movie.md')).rejects.toThrow();
+	});
+
+	it('excludes unplayed Nuvio library items before the preview is built', () => {
+		const settings = { ...structuredClone(DEFAULT_DATA.settings), includeUnwatchedLibrary: false };
+		const items = [
+			{ _id: 'unplayed', name: 'Unplayed', type: 'movie' as const, state: {} },
+			{ _id: 'progress', name: 'Progress', type: 'movie' as const, state: { timeOffset: 360_000, duration: 600_000 } },
+		];
+
+		expect(filterImportedItems(items, settings).map((item) => item._id)).toEqual(['progress']);
+	});
+
+	it('reads the library through the selected source, not always Stremio', async () => {
+		const { service } = serviceWithCache();
+		const data = (service as unknown as { data: typeof DEFAULT_DATA }).data;
+		data.settings.provider = 'nuvio';
+		data.settings.authKeySecretId = '';
+		data.settings.sessionSecretIds = {};
+
+		// The summary and the planner share this call. Before it was shared, the
+		// summary always demanded a Stremio key and failed outright on Nuvio.
+		await expect(service.fetchLibraryItems()).rejects.toThrow(/Nuvio session/);
+	});
+
 	it('persists derived metadata only after a complete successful apply', async () => {
 		const { files, service } = serviceWithCache();
 

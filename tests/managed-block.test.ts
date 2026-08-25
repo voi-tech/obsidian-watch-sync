@@ -25,7 +25,7 @@ Progress: {{progressPercent}}%
 `;
 
 const options = (overrides: Partial<EngineOptions> = {}): EngineOptions => ({
-	settings: { ...DEFAULT_SETTINGS, movieFolder: MOVIES, seriesFolder: 'Series' },
+	settings: { ...DEFAULT_SETTINGS, movieFolder: MOVIES, seriesFolder: 'Series', properties: { link: 'source' } },
 	index: {},
 	templates: { movie: TEMPLATE, series: '' },
 	...overrides,

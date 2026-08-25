@@ -7,7 +7,7 @@ import type { Mock } from 'vitest';
  */
 export const mockedRequestUrl = requestUrl as unknown as Mock;
 
-type RequestCall = [{ url: string }];
+type RequestCall = [{ url: string; headers?: Record<string, string>; body?: string }];
 
 function requestCalls(): RequestCall[] {
 	return mockedRequestUrl.mock.calls as unknown as RequestCall[];
@@ -23,4 +23,14 @@ export function lastRequestedUrl(index = 0): string {
 
 export function requestedUrls(): string[] {
 	return requestCalls().map((call) => call[0].url);
+}
+
+export function requestedHeaders(index = 0): Record<string, string> | undefined {
+	const headers: unknown = requestCalls()[index]?.[0].headers;
+	if (!headers || typeof headers !== 'object' || Array.isArray(headers)) return undefined;
+	return Object.fromEntries(Object.entries(headers).filter((entry): entry is [string, string] => typeof entry[1] === 'string'));
+}
+
+export function requestedBody(index = 0): string | undefined {
+	return requestCalls()[index]?.[0].body;
 }

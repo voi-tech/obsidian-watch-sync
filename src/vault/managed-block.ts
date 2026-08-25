@@ -10,8 +10,10 @@ import type { NormalizedMedia } from '../model/types';
  *
  * The markers are Obsidian comments, invisible in reading view.
  */
-export const MANAGED_START = '%% stremio %%';
-export const MANAGED_END = '%% /stremio %%';
+export const MANAGED_START = '%% watch-sync %%';
+export const MANAGED_END = '%% /watch-sync %%';
+const LEGACY_MANAGED_START = '%% stremio %%';
+const LEGACY_MANAGED_END = '%% /stremio %%';
 
 export function hasManagedBlock(content: string): boolean {
 	return boundsOf(content) !== null;
@@ -53,16 +55,18 @@ export function defaultManagedBlock(media: NormalizedMedia): string {
 		);
 	}
 	lines.push(`Progress: **${media.progressPercent}%**${media.finished ? ' (finished)' : ''}`);
-	lines.push(`[Open in Stremio](${media.stremioAppUrl})`);
+	if (media.stremioAppUrl) lines.push(`[Open item](${media.stremioAppUrl})`);
 	if (media.stremioEpisodeUrl) lines.push(`[Resume episode](${media.stremioEpisodeUrl})`);
 	return lines.join('\n');
 }
 
 function boundsOf(content: string): { innerStart: number; innerEnd: number } | null {
-	const start = content.indexOf(MANAGED_START);
-	if (start === -1) return null;
-	const innerStart = start + MANAGED_START.length;
-	const innerEnd = content.indexOf(MANAGED_END, innerStart);
-	if (innerEnd === -1) return null;
-	return { innerStart, innerEnd };
+	for (const [startMarker, endMarker] of [[MANAGED_START, MANAGED_END], [LEGACY_MANAGED_START, LEGACY_MANAGED_END]] as const) {
+		const start = content.indexOf(startMarker);
+		if (start === -1) continue;
+		const innerStart = start + startMarker.length;
+		const innerEnd = content.indexOf(endMarker, innerStart);
+		if (innerEnd !== -1) return { innerStart, innerEnd };
+	}
+	return null;
 }

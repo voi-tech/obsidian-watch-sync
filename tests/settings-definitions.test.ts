@@ -4,9 +4,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as obsidian from 'obsidian';
 import { Platform, Setting } from 'obsidian';
-import { StremioSyncSettingTab } from '../src/settings';
+import { WatchSyncSettingTab } from '../src/settings';
 import { DEFAULT_DATA } from '../src/model/types';
-import type StremioSyncPlugin from '../src/main';
+import type WatchSyncPlugin from '../src/main';
 import { installObsidianDom } from './stubs/dom';
 
 const globalObsidian = globalThis as typeof globalThis & {
@@ -34,20 +34,20 @@ globalObsidian.createEl = (tag, options) => {
 
 installObsidianDom();
 
-function makeTab(): { tab: StremioSyncSettingTab; plugin: StremioSyncPlugin; persist: ReturnType<typeof vi.fn> } {
+function makeTab(): { tab: WatchSyncSettingTab; plugin: WatchSyncPlugin; persist: ReturnType<typeof vi.fn> } {
 	const persist = vi.fn().mockResolvedValue(undefined);
 	const plugin = {
 		app: {},
 		data: structuredClone(DEFAULT_DATA),
 		persist,
 		restartAutoSync: vi.fn(),
-	} as unknown as StremioSyncPlugin;
-	const tab = new StremioSyncSettingTab(plugin);
+	} as unknown as WatchSyncPlugin;
+	const tab = new WatchSyncSettingTab(plugin);
 	Object.defineProperty(tab, 'update', { configurable: true, value: vi.fn() });
 	return { tab, plugin, persist };
 }
 
-function definitionsOf(tab: StremioSyncSettingTab): Record<string, unknown>[] {
+function definitionsOf(tab: WatchSyncSettingTab): Record<string, unknown>[] {
 	return tab
 		.getSettingDefinitions()
 		.flatMap((item) => ('items' in item && item.items ? item.items : [item])) as unknown as Record<string, unknown>[];
@@ -84,26 +84,24 @@ describe('declarative settings', () => {
 		const groups = tab.getSettingDefinitions().filter((item) => 'type' in item) as { heading?: string }[];
 
 		expect(groups.map((group) => group.heading)).toEqual([
-			'Connection',
-			'Files and folders',
+			'Connection and syncing',
 			'Library filtering',
-			'Notes',
-			'Syncing',
-			'Metadata',
-			'Properties',
+			'Files, folders, and notes',
+			'Metadata and properties',
 			'Reset',
+			'Recent events',
 		]);
 	});
 
-	it('uses the Obsidian language for setting labels without changing stored metadata language', () => {
+	it('keeps the plugin UI in English without changing stored metadata language', () => {
 		const { tab, plugin } = makeTab();
 		vi.spyOn(obsidian, 'getLanguage').mockReturnValue('pl');
 
 		const definitions = definitionsOf(tab);
 		const groups = tab.getSettingDefinitions().filter((item) => 'type' in item) as { heading?: string }[];
 
-		expect(groups[0].heading).toBe('Połączenie');
-		expect(definitions.find((definition) => definition.name === 'Język metadanych')).toBeDefined();
+		expect(groups[0].heading).toBe('Connection and syncing');
+		expect(definitions.find((definition) => definition.name === 'Metadata language')).toBeDefined();
 		expect(plugin.data.settings.language).toBe('pl-PL');
 	});
 
@@ -112,7 +110,7 @@ describe('declarative settings', () => {
 		const definitions = definitionsOf(tab);
 		const rendered = definitions.filter((definition) => 'render' in definition).map((definition) => definition.name);
 
-		expect(rendered).toEqual(['Stremio account', 'TMDB API key', 'Restore defaults']);
+		expect(rendered).toEqual(['Sync source', 'Stremio account', 'Nuvio account', 'Nuvio profile', 'Library', 'Watch history', 'Playback progress', 'Movie file name', 'Series file name', 'TMDB API key', 'Template keys and properties', 'Restore defaults', 'Recent events']);
 		expect(definitions.find((definition) => definition.name === 'Enter an auth key manually')).toBeUndefined();
 		expect(definitions.find((definition) => definition.name === 'Template reference')).toBeUndefined();
 	});
@@ -134,15 +132,19 @@ describe('declarative settings', () => {
 	it('reads and writes plugin.data.settings through control accessors', async () => {
 		const { tab, plugin, persist } = makeTab();
 
-		expect(tab.getControlValue('properties.cover')).toBe('cover');
+		expect(tab.getControlValue('properties.cover')).toBeUndefined();
 		await tab.setControlValue('skipSampledTitles', true);
 		await tab.setControlValue('properties.cover', 'poster');
 		await tab.setControlValue('doneTag', '##Finished');
+		await tab.setControlValue('movieTemplateText', '\r\n# {{title}}\r\n');
+		await tab.setControlValue('seriesTemplateText', 42);
 
 		expect(plugin.data.settings.skipSampledTitles).toBe(true);
 		expect(plugin.data.settings.properties.cover).toBe('poster');
 		expect(plugin.data.settings.doneTag).toBe('Finished');
-		expect(persist).toHaveBeenCalledTimes(3);
+		expect(plugin.data.settings.movieTemplateText).toBe('\n# {{title}}\n');
+		expect(plugin.data.settings.seriesTemplateText).toBe('');
+		expect(persist).toHaveBeenCalledTimes(5);
 	});
 
 	it('does not expose automatic sync controls on mobile', () => {
@@ -157,16 +159,16 @@ describe('declarative settings', () => {
 	it('validates duplicate property names and tags before persistence', () => {
 		const { tab } = makeTab();
 		const definitions = definitionsOf(tab);
-		const cover = definitions.find((definition) => definition.name === 'Poster')! as {
-			control: { validate: (value: string) => string | undefined };
-		};
 		const tag = definitions.find((definition) => definition.name === 'Completion tag')! as {
 			control: { validate: (value: string) => string | undefined };
 		};
-		const validateCover = (value: string) => cover.control.validate(value);
+		const validateCover = (value: string) => (tab as unknown as {
+			propertyProblem: (key: string, value: string) => string | undefined;
+		}).propertyProblem('cover', value);
 		const validateTag = (value: string) => tag.control.validate(value);
 
-		expect(validateCover('source')).toContain('already used');
+		expect(validateCover('tags')).toContain('different');
+		expect(validateCover('source')).toBeUndefined();
 		expect(validateCover('poster')).toBeUndefined();
 		expect(validateTag('bad//tag')).toContain('tag');
 		expect(validateTag('Watched')).toBeUndefined();

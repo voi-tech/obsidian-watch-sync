@@ -5,13 +5,14 @@ import { toAliases, toTags } from '../src/vault/frontmatter';
 import { createLimiter, mapWithLimit } from '../src/util/limit';
 import type { ApplicableOperation } from '../src/sync/operations';
 import { DEFAULT_SETTINGS, planIsEmpty, type NormalizedMedia, type SyncPlan } from '../src/model/types';
-import { webUrl } from '../src/stremio/links';
+import { nuvioSourceUrl, webUrl } from '../src/stremio/links';
+import { matchNote } from '../src/sync/matcher';
 import { FakeVault } from './fake-gateway';
 
 const MOVIES = 'Movies';
 
 const options = (): EngineOptions => ({
-	settings: { ...DEFAULT_SETTINGS, movieFolder: MOVIES, seriesFolder: 'Series' },
+	settings: { ...DEFAULT_SETTINGS, movieFolder: MOVIES, seriesFolder: 'Series', properties: { link: 'source' } },
 	index: {},
 	templates: { movie: '', series: '' },
 });
@@ -95,7 +96,7 @@ describe('renamed link property', () => {
 		const renamed = options();
 		renamed.settings = {
 			...renamed.settings,
-			properties: { ...renamed.settings.properties, source: 'stremio' },
+			properties: { ...renamed.settings.properties, link: 'stremio' },
 		};
 
 		await run(await buildPlan([movie()], vault, renamed), vault);
@@ -113,7 +114,7 @@ describe('renamed link property', () => {
 		const renamed = options();
 		renamed.settings = {
 			...renamed.settings,
-			properties: { ...renamed.settings.properties, source: 'stremio' },
+			properties: { ...renamed.settings.properties, link: 'stremio' },
 		};
 
 		const plan = await buildPlan([movie()], vault, renamed);
@@ -135,7 +136,7 @@ describe('renamed link property', () => {
 		const renamed = options();
 		renamed.settings = {
 			...renamed.settings,
-			properties: { ...renamed.settings.properties, source: 'stremio' },
+			properties: { ...renamed.settings.properties, link: 'stremio' },
 		};
 
 		await run(await buildPlan([movie()], vault, renamed), vault);
@@ -233,5 +234,22 @@ describe('concurrency limiter', () => {
 		const limiter = createLimiter(1);
 		await expect(limiter.run(async () => Promise.reject(new Error('boom')))).rejects.toThrow('boom');
 		await expect(limiter.run(async () => 'fine')).resolves.toBe('fine');
+	});
+});
+
+describe('a Nuvio note the plugin wrote is found again', () => {
+	it('matches on the source link with no local index', () => {
+		const media = movie({ id: 'nuvio:tt0167260', stremioUrl: nuvioSourceUrl('movie', 'tt0167260') });
+		const note = {
+			path: `${MOVIES}/Arrival (2016).md`,
+			basename: 'Arrival (2016)',
+			source: nuvioSourceUrl('movie', 'tt0167260'),
+			aliases: ['Arrival'],
+			frontmatter: {},
+		};
+
+		// The index is empty here on purpose: a reinstall or a second device starts
+		// without one, and the source link has to carry the match on its own.
+		expect(matchNote(media, [note], {})).toMatchObject({ match: { tier: 'source', certain: true } });
 	});
 });

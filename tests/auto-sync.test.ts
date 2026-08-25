@@ -3,7 +3,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Platform } from 'obsidian';
-import StremioSyncPlugin from '../src/main';
+import WatchSyncPlugin from '../src/main';
 import { DEFAULT_DATA } from '../src/model/types';
 
 beforeEach(() => vi.useFakeTimers());
@@ -14,7 +14,7 @@ afterEach(() => {
 
 describe('automatic sync timer lifecycle', () => {
 	it('registers the active interval with Obsidian and replaces it without overlap', () => {
-		const plugin = new StremioSyncPlugin({} as never, {} as never);
+		const plugin = new WatchSyncPlugin({} as never, {} as never);
 		plugin.data = structuredClone(DEFAULT_DATA);
 		plugin.data.settings.autoSyncEnabled = true;
 		plugin.data.settings.autoSyncIntervalMinutes = 15;
@@ -35,7 +35,7 @@ describe('automatic sync timer lifecycle', () => {
 	});
 
 	it('clears an existing interval when background sync is disabled', () => {
-		const plugin = new StremioSyncPlugin({} as never, {} as never);
+		const plugin = new WatchSyncPlugin({} as never, {} as never);
 		plugin.data = structuredClone(DEFAULT_DATA);
 		plugin.data.settings.autoSyncEnabled = true;
 		plugin.restartAutoSync();
@@ -47,7 +47,7 @@ describe('automatic sync timer lifecycle', () => {
 	});
 
 	it('does not schedule background sync before the layout-ready phase', () => {
-		const plugin = new StremioSyncPlugin({} as never, {} as never);
+		const plugin = new WatchSyncPlugin({} as never, {} as never);
 		plugin.data = structuredClone(DEFAULT_DATA);
 		plugin.data.settings.autoSyncEnabled = true;
 		const lifecycle = plugin as unknown as { layoutReady: boolean };
@@ -63,7 +63,7 @@ describe('automatic sync timer lifecycle', () => {
 
 	it('does not schedule background sync on mobile', () => {
 		Platform.isMobileApp = true;
-		const plugin = new StremioSyncPlugin({} as never, {} as never);
+		const plugin = new WatchSyncPlugin({} as never, {} as never);
 		plugin.data = structuredClone(DEFAULT_DATA);
 		plugin.data.settings.autoSyncEnabled = true;
 
@@ -76,7 +76,7 @@ describe('automatic sync timer lifecycle', () => {
 
 describe('metadata cache command', () => {
 	it('reports a cache write failure without leaving an unhandled rejection', async () => {
-		const plugin = new StremioSyncPlugin({} as never, {} as never);
+		const plugin = new WatchSyncPlugin({} as never, {} as never);
 		const cache = { clear: vi.fn(), save: vi.fn().mockRejectedValue(new Error('disk full')) };
 		(plugin as unknown as { cache: typeof cache }).cache = cache;
 		const report = vi.spyOn(plugin, 'reportError').mockImplementation(() => undefined);

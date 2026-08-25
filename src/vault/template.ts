@@ -10,11 +10,42 @@ import { t } from '../i18n';
  * created.
  */
 
-export interface TemplateContext extends NormalizedMedia {
+export interface TemplateContext {
+	/** The complete, flat public template surface shown in Settings → Template keys. */
+	title: string;
+	source: string;
+	original?: string;
+	year?: number;
+	years: string;
+	released?: string;
+	description?: string;
+	duration?: number;
+	genres: string[];
+	cast: string[];
+	director?: string;
+	provider: 'stremio' | 'nuvio';
+	kind: NormalizedMedia['type'];
+	link?: string;
+	resume?: string;
+	imdb?: string;
+	status: NormalizedMedia['watchStatus'];
+	progress: number;
+	finished: boolean;
+	watched?: string;
+	episodes: number;
+	current?: string;
+	seasons: Season[];
+	cover?: string;
+	backdrop?: string;
+	seasonsMarkdown: string;
+	/** Legacy aliases retained so existing vault templates and file-name patterns do not break. */
+	yearStart?: number;
+	yearEnd?: number;
 	yearRange: string;
 	genresText: string;
 	castText: string;
-	seasonsMarkdown: string;
+	watchStatus: NormalizedMedia['watchStatus'];
+	progressPercent: number;
 	episodeCount: number;
 	watchedCount: number;
 	lastEpisodeLabel?: string;
@@ -33,18 +64,48 @@ engine.registerPartial('seasons', '{{{seasonsMarkdown}}}');
 
 export function buildContext(media: NormalizedMedia): TemplateContext {
 	const episodes = media.seasons.flatMap((season) => season.episodes);
+	const seasons = printableSeasons(media.seasons);
+	const yearRange = formatYearRange(media);
+	const currentLabel = media.lastEpisode
+		? `S${String(media.lastEpisode.season).padStart(2, '0')}E${String(media.lastEpisode.number).padStart(2, '0')}`
+		: undefined;
 	return {
-		...media,
-		seasons: printableSeasons(media.seasons),
-		yearRange: formatYearRange(media),
+		title: media.title,
+		source: media.id.replace(/^nuvio:/, ''),
+		original: media.originalTitle,
+		year: media.year,
+		years: yearRange,
+		released: media.releaseDate,
+		description: media.description,
+		duration: media.durationMinutes,
+		genres: media.genres,
+		cast: media.cast,
+		director: media.director,
+		provider: media.id.startsWith('nuvio:') ? 'nuvio' : 'stremio',
+		kind: media.type,
+		link: media.stremioUrl || media.stremioAppUrl || undefined,
+		resume: media.stremioEpisodeUrl,
+		imdb: media.imdbUrl,
+		status: media.watchStatus,
+		progress: media.progressPercent,
+		finished: media.finished,
+		watched: media.lastWatched,
+		episodes: episodes.length,
+		current: currentLabel,
+		seasons,
+		cover: media.cover,
+		backdrop: media.backdrop,
+		seasonsMarkdown: renderSeasons(media.seasons),
+		yearStart: media.yearStart,
+		yearEnd: media.yearEnd,
+		yearRange,
 		genresText: media.genres.join(', '),
 		castText: media.cast.join(', '),
-		seasonsMarkdown: renderSeasons(media.seasons),
+		watchStatus: media.watchStatus,
+		progressPercent: media.progressPercent,
 		episodeCount: episodes.length,
 		watchedCount: episodes.filter((episode) => episode.watched).length,
-		lastEpisodeLabel: media.lastEpisode
-			? `S${String(media.lastEpisode.season).padStart(2, '0')}E${String(media.lastEpisode.number).padStart(2, '0')}`
-			: undefined,
+		lastEpisodeLabel: currentLabel,
 	};
 }
 
@@ -129,7 +190,7 @@ export function sanitizeFilename(name: string): string {
 export function renderFilename(pattern: string, context: TemplateContext): string {
 	const raw = render(pattern, context).trim();
 	const sanitized = sanitizeFilename(raw);
-	return sanitized || sanitizeFilename(context.title) || context.id;
+	return sanitized || sanitizeFilename(context.title) || context.source;
 }
 
 export const BUILTIN_MOVIE_TEMPLATE = `# {{title}} ({{year}})
@@ -137,15 +198,15 @@ export const BUILTIN_MOVIE_TEMPLATE = `# {{title}} ({{year}})
 {{#if description}}> [!tldr]- Description
 > {{description}}
 
-{{/if}}{{#if stremioAppUrl}}[Open in Stremio]({{stremioAppUrl}})
+{{/if}}{{#if link}}[Open item]({{link}})
 {{/if}}`;
 
-export const BUILTIN_SERIES_TEMPLATE = `# {{title}} ({{yearRange}})
+export const BUILTIN_SERIES_TEMPLATE = `# {{title}} ({{years}})
 
 {{#if description}}> [!tldr]- Description
 > {{description}}
 
-{{/if}}{{#if stremioAppUrl}}[Open in Stremio]({{stremioAppUrl}})
+{{/if}}{{#if link}}[Open item]({{link}})
 
 {{/if}}{{> seasons}}
 `;
