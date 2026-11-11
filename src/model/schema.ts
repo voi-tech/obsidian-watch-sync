@@ -158,8 +158,8 @@ export const tmdbSeasonSchema = z.object({
 });
 
 export const tmdbFindSchema = z.object({
-	movie_results: z.array(tmdbMovieSchema.partial({ title: true }).passthrough()).default([]),
-	tv_results: z.array(tmdbSeriesSchema.partial({ name: true }).passthrough()).default([]),
+	movie_results: z.array(tmdbMovieSchema.partial({ title: true }).loose()).default([]),
+	tv_results: z.array(tmdbSeriesSchema.partial({ name: true }).loose()).default([]),
 });
 
 export type TmdbMovie = z.infer<typeof tmdbMovieSchema>;

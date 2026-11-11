@@ -24,6 +24,36 @@ describe('Nuvio API', () => {
 		expect(lastRequestedUrl()).toBe(`${BACKEND}/.well-known/nuvio`);
 	});
 
+	it('defaults omitted discovery capabilities without accepting null', async () => {
+		const config = { version: 1, service: 'nuvio', backend_url: BACKEND, publishable_key: 'public-key' };
+		reply(config);
+		await expect(discoverNuvioBackend(BACKEND)).resolves.toEqual({ ...backend, supportsTvLogin: false });
+		reply({ ...config, capabilities: null });
+		await expect(discoverNuvioBackend(BACKEND)).rejects.toThrow('unsupported configuration');
+	});
+
+	it('preserves snapshot defaults and unknown watched fields', async () => {
+		reply([{ content_id: 'tt1', content_type: 'movie', poster: null }]);
+		reply([{ content_id: 'tt1', content_type: 'movie', season: null, episode: null }]);
+		reply([{ content_id: 'tt1', content_type: 'movie', extra: 'retained' }]);
+		await expect(fetchNuvioSnapshot(backend, 'user-access', 2)).resolves.toEqual({
+			library: [{ content_id: 'tt1', content_type: 'movie', poster: null, name: '', genres: [] }],
+			progress: [{ content_id: 'tt1', content_type: 'movie', season: null, episode: null, video_id: '', position: 0, duration: 0, last_watched: 0 }],
+			watched: [{ content_id: 'tt1', content_type: 'movie', extra: 'retained' }],
+		});
+	});
+
+	it('rejects an empty TV challenge before reading its first element', async () => {
+		reply({ access_token: 'anonymous-access', refresh_token: 'anonymous-refresh' });
+		reply([]);
+		await expect(beginNuvioTvLogin(backend, 'nonce', 'Obsidian')).rejects.toThrow('invalid TV sign-in challenge');
+	});
+
+	it('rejects profile indices outside the safe integer range', async () => {
+		reply([{ id: 'uuid-1', profile_index: Number.MAX_SAFE_INTEGER + 1, name: 'Main' }]);
+		await expect(fetchNuvioProfiles(backend, 'user-access')).rejects.toThrow('invalid profiles');
+	});
+
 	it('starts the native TV sign-in with an anonymous caller session, never user credentials', async () => {
 		reply({ access_token: 'anonymous-access', refresh_token: 'anonymous-refresh' });
 		reply([{ code: 'ABCD', qr_content: 'https://nuvio.tv/tv-login?code=ABCD', poll_interval_seconds: 3 }]);

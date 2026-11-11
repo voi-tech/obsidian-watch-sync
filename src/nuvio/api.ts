@@ -4,12 +4,12 @@ import { z } from 'zod';
 const discoverySchema = z.object({
 	version: z.literal(1),
 	service: z.literal('nuvio'),
-	backend_url: z.string().url(),
+	backend_url: z.url(),
 	publishable_key: z.string().min(1),
 	capabilities: z.object({ tv_login: z.boolean().optional() }).default({}),
 });
 const anonymousSessionSchema = z.object({ access_token: z.string().min(1), refresh_token: z.string().min(1) });
-const challengeSchema = z.object({ code: z.string().min(1), qr_content: z.string().url().optional(), web_url: z.string().url().optional(), poll_interval_seconds: z.number().positive().optional() });
+const challengeSchema = z.object({ code: z.string().min(1), qr_content: z.url().optional(), web_url: z.url().optional(), poll_interval_seconds: z.number().positive().optional() });
 const sessionSchema = z.object({
 	access_token: z.string().min(1),
 	refresh_token: z.string().min(1).optional(),
@@ -19,7 +19,7 @@ const sessionSchema = z.object({
 const profileSchema = z.object({ id: z.string().min(1), profile_index: z.number().int().nonnegative(), name: z.string().min(1) });
 const libraryEntrySchema = z.object({ content_id: z.string().min(1), content_type: z.string().min(1), name: z.string().default(''), poster: z.string().nullable().optional(), description: z.string().nullable().optional(), release_info: z.string().nullable().optional(), genres: z.array(z.string()).default([]) });
 const progressEntrySchema = z.object({ content_id: z.string().min(1), content_type: z.string().min(1), video_id: z.string().default(''), position: z.number().nonnegative().default(0), duration: z.number().nonnegative().default(0), last_watched: z.number().nonnegative().default(0), season: z.number().int().nullable().optional(), episode: z.number().int().nullable().optional() });
-const watchedEntrySchema = z.object({ content_id: z.string().min(1), content_type: z.string().min(1), watched_at: z.number().nonnegative().optional(), video_id: z.string().optional() }).passthrough();
+const watchedEntrySchema = z.object({ content_id: z.string().min(1), content_type: z.string().min(1), watched_at: z.number().nonnegative().optional(), video_id: z.string().optional() }).loose();
 
 export interface NuvioBackend { backendUrl: string; publishableKey: string; supportsTvLogin: boolean; }
 export interface NuvioSession { accessToken: string; refreshToken: string; expiresAt: number; }
