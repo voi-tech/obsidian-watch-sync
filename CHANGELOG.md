@@ -4,6 +4,14 @@ All notable changes to Watch Sync are documented here. Releases use the `YY.M.PA
 
 ## [Unreleased]
 
+### Security
+
+- Upgrade Zod to 4.6.7 to address GHSA-mrhx-c7xc-m3w5 and adapt metadata cache records to the Zod 4 API.
+- Apply non-breaking development dependency security updates without migrating eslint-plugin-obsidianmd.
+- Preserve legacy metadata cache entries whose unknown value was omitted during JSON serialization.
+
+The dependency update does not impose new limits on imported libraries. Existing unbounded array schemas can still accumulate validation issues for large invalid inputs.
+
 ## [26.8.6] — 2026-08-25
 
 ### Added

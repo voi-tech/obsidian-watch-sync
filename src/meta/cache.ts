@@ -17,9 +17,10 @@ interface CacheFile {
 const cacheFileSchema = z.object({
 	version: z.string(),
 	entries: z.record(
+		z.string(),
 		z.object({
-			value: z.unknown(),
-			storedAt: z.number().finite(),
+			value: z.unknown().optional(),
+			storedAt: z.number(),
 			mtime: z.string().optional(),
 		}),
 	),

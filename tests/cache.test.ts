@@ -98,6 +98,21 @@ describe('MetadataCache', () => {
 		expect(cache.get('a', { ttlDays: 30 })).toBeNull();
 	});
 
+	it('preserves legacy cache entries with an omitted unknown value', async () => {
+		const { adapter } = fakeAdapter({ [PATH]: JSON.stringify({
+			version: '2:26.8.0',
+			entries: {
+				missing: { storedAt: Date.now() },
+				valid: { value: { title: 'X' }, storedAt: Date.now() },
+			},
+		}) });
+		const cache = new MetadataCache(adapter, PATH, '2:26.8.0');
+		await cache.load();
+		expect(cache.size).toBe(2);
+		expect(cache.get('valid', { ttlDays: 30 })).toEqual({ title: 'X' });
+		expect(cache.get('missing', { ttlDays: 30 })).toBeUndefined();
+	});
+
 	it('stays in memory when there is nowhere to write', async () => {
 		const { adapter, files } = fakeAdapter();
 		const cache = new MetadataCache(adapter, '', '2:26.8.0');
