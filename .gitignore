@@ -7,3 +7,10 @@ cache.json
 coverage/
 .worktrees/
 .DS_Store
+
+# Secrets and local config (never commit)
+.env
+.env.*
+!.env.example
+*.pem
+*.key

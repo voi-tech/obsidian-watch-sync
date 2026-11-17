@@ -25,6 +25,8 @@ function applyInfo(el: HTMLElement, info?: DomElementInfo): void {
 }
 
 export function installObsidianDom(): void {
+	// Obsidian exposes the document of the focused window as a global.
+	Object.defineProperty(globalThis, 'activeDocument', { configurable: true, get: () => document });
 	const proto = HTMLElement.prototype as HTMLElement & Record<string, unknown>;
 
 	proto.createEl = function <K extends keyof HTMLElementTagNameMap>(

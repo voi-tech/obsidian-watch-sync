@@ -19,8 +19,9 @@ export class ConnectModal extends Modal {
 	private done = false;
 	private polling = false;
 	private closed = false;
+	private doc: Document | null = null;
 	private readonly handleVisibilityChange = (): void => {
-		if (document.visibilityState === 'hidden') return;
+		if (this.doc?.visibilityState === 'hidden') return;
 		void this.poll();
 	};
 
@@ -33,7 +34,8 @@ export class ConnectModal extends Modal {
 
 	override onOpen(): void {
 		this.closed = false;
-		document.addEventListener('visibilitychange', this.handleVisibilityChange);
+		this.doc = activeDocument;
+		this.doc.addEventListener('visibilitychange', this.handleVisibilityChange);
 		this.setTitle(t('connect.title'));
 		this.modalEl.addClass('watch-sync-connect');
 		void this.begin();
@@ -41,7 +43,8 @@ export class ConnectModal extends Modal {
 
 	override onClose(): void {
 		this.closed = true;
-		document.removeEventListener('visibilitychange', this.handleVisibilityChange);
+		this.doc?.removeEventListener('visibilitychange', this.handleVisibilityChange);
+		this.doc = null;
 		this.stopPolling();
 		this.contentEl.empty();
 	}
