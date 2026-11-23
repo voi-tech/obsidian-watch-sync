@@ -14,7 +14,7 @@
     "url": "https://github.com/voi-tech/obsidian-watch-sync/issues"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22.12"
   },
   "keywords": [
     "obsidian",
