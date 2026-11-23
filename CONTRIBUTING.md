@@ -12,7 +12,7 @@ Thank you for helping improve Watch Sync. Changes should preserve the plugin's c
 
 Requirements:
 
-- Node.js 20 or later;
+- Node.js 22.12 or later;
 - npm;
 - Obsidian 1.13.0 or later for manual testing.
 
@@ -69,7 +69,7 @@ npm audit --omit=dev --audit-level=moderate
 - [ ] The production build succeeds and the mobile-bundle scan finds no desktop-only dependency.
 - [ ] `scripts/check-release.mjs` finds non-empty `main.js`, `manifest.json`, and `styles.css`, agreeing versions, the expected plugin identity, and no `main.js.map`.
 - [ ] The production dependency audit reports nothing at moderate or higher.
-- [ ] GitHub Actions passes on Node.js 20, 22, and 24.
+- [ ] GitHub Actions passes on Node.js 22, 24, and 26.
 
 ### 3. Manual smoke test
 

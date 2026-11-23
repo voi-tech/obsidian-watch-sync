@@ -2,13 +2,8 @@ import type { LibraryItemState } from '../model/schema';
 import type { EpisodeProgress } from '../model/types';
 import { t } from '../i18n';
 
-// pako 1.0 is browser-safe but ships without TypeScript declarations.
-// @ts-expect-error pako 1.0 has no bundled declaration file.
-import pako from 'pako';
-
-type PakoModule = { inflate(data: Uint8Array): Uint8Array };
-
-const inflate = (data: Uint8Array): Uint8Array => (pako as unknown as PakoModule).inflate(data);
+// pako is browser-safe (no Node built-ins), so it works on mobile; since 2.x it ships its own types.
+import { inflate } from 'pako';
 
 export interface EpisodeInput {
 	season: number;

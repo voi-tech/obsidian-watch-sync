@@ -4,6 +4,10 @@ All notable changes to Watch Sync are documented here. Releases use the `YY.M.PA
 
 ## [Unreleased]
 
+### Changed
+
+- Update pako to 3.x (own TypeScript types, named `inflate` import) and development tools to their current major versions (ESLint 10, Vitest 5, Vite 8, jsdom 31). TypeScript stays on 6.0 until typescript-eslint supports TypeScript 7. Development now needs Node.js 22.12 or newer (Vitest 5); CI checks Node 22, 24 and 26. The plugin itself runs in Obsidian and is unaffected.
+
 ### Security
 
 - Upgrade Zod to 4.6.7 to address GHSA-mrhx-c7xc-m3w5 and adapt metadata cache records to the Zod 4 API.

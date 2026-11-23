@@ -242,7 +242,7 @@ Example: `26.8.0` is the first August 2026 release. Compatibility history is rec
 
 ## Development
 
-Requires Node.js 20 or later.
+Requires Node.js 22.12 or later.
 
 ```bash
 npm install
