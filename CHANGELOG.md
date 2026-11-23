@@ -2,7 +2,7 @@
 
 All notable changes to Watch Sync are documented here. Releases use the `YY.M.PATCH` version format, which is compatible with Semantic Versioning.
 
-## [Unreleased]
+## [26.11.0] (BRAT prerelease)
 
 ### Changed
 
